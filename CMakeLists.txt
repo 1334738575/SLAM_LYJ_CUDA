@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(CUDA_LYJ)
+# set(CMAKE_CUDA_ARCHITECTURES 89)
+# set(CMAKE_CUDA_COMPILER "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.2/bin/nvcc.exe")
+# project(TEST_LYJ LANGUAGES CXX CUDA)
 
 #################################setting##################################
 set(CMAKE_CXX_STANDARD 17)
@@ -14,6 +17,7 @@ add_link_options(/DEBUG) #生成调试信息（测试在visual studio中有效�
 #################################package##################################
 enable_language(CUDA)
 find_package(CUDA)
+# message(FATAL_ERROR ${CUDA_FOUND})
 include_directories(${CUDA_INCLUDE_DIRS})
 set(CMAKE_CUDA_ARCHITECTURES 89)
 

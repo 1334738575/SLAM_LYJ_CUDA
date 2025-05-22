@@ -46,7 +46,7 @@ namespace CUDA_LYJ
             float depth;
             unsigned int fid;
         };
-        uint64_t data;
+        unsigned long long data;
     };
     CUDA_LYJ_API void test2()
     {
@@ -148,14 +148,14 @@ namespace CUDA_LYJ
         fcam << (camInv[0] * w + camInv[2]) * maxd << " " << (camInv[1] * h + camInv[3]) * maxd << " " << maxd << std::endl;
         fP.close();
         fcam.close();
-        std::vector<uint64_t> dids(w * h);
+        std::vector<unsigned long long> dids(w * h);
         std::vector<DepthID2> did2s(w * h);
         DepthID2 tmp;
         tmp.depth = FLT_MAX;
         tmp.fid = UINT_MAX;
         for (auto &did : did2s)
             did = tmp;
-        memcpy(dids.data(), did2s.data(), w * h * sizeof(uint64_t));
+        memcpy(dids.data(), did2s.data(), w * h * sizeof(unsigned long long));
         {
             cudaError_t err = cudaGetLastError();
             if (err != cudaSuccess)
@@ -188,10 +188,17 @@ namespace CUDA_LYJ
         unsigned int *fidsDev;
         cudaMalloc((void **)&fidsDev, w * h * sizeof(unsigned int));
         cudaMemcpy(fidsDev, fids.data(), w * h * sizeof(unsigned int), cudaMemcpyHostToDevice);
+<<<<<<< HEAD
         uint64_t *didsDev;
         cudaMalloc((void **)&didsDev, w * h * sizeof(uint64_t));
         cudaMemcpy(didsDev, dids.data(), w * h * sizeof(uint64_t), cudaMemcpyHostToDevice);
         CUDA_LYJ::BaseCU baseDev;
+        == == == =
+                     unsigned long long * didsDev;
+        cudaMalloc((void **)&didsDev, w * h * sizeof(unsigned long long));
+        cudaMemcpy(didsDev, dids.data(), w * h * sizeof(unsigned long long), cudaMemcpyHostToDevice);
+        SLAM_LYJ_CUDA::BaseCU baseDev;
+>>>>>>> 2c870510a69633fdb3009e16a7be6311f14156e0
         cudaDeviceSynchronize();
         {
             cudaError_t err = cudaGetLastError();
@@ -219,7 +226,7 @@ namespace CUDA_LYJ
         cudaMemcpy(pixels.data(), pixelsDev, vn * 3 * sizeof(float), cudaMemcpyDeviceToHost);
         cudaMemcpy(depths.data(), depthsDev, w * h * sizeof(float), cudaMemcpyDeviceToHost);
         cudaMemcpy(fids.data(), fidsDev, w * h * sizeof(unsigned int), cudaMemcpyDeviceToHost);
-        cudaMemcpy(dids.data(), didsDev, w * h * sizeof(uint64_t), cudaMemcpyDeviceToHost);
+        cudaMemcpy(dids.data(), didsDev, w * h * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
         cudaDeviceSynchronize();
         {
             cudaError_t err = cudaGetLastError();
@@ -287,7 +294,7 @@ namespace CUDA_LYJ
         f4.close();
         f5.close();
         f6.close();
-        memcpy(did2s.data(), dids.data(), w * h * sizeof(uint64_t));
+        memcpy(did2s.data(), dids.data(), w * h * sizeof(unsigned long long));
         for (int i = 0; i < w * h; ++i)
         {
             if (did2s[i].depth == FLT_MAX)
