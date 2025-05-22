@@ -22,9 +22,9 @@ namespace SLAM_LYJ_CUDA
 
 		void testCameraCUDA(float3* _p3ds, float3* _p2ds, unsigned int _vn, int _w, int _h, CameraCU _cam);
 
-		void testDepthAndFidCUDA(float3* _p3ds, float3* _p2ds, uint3* _faces, float3* _fNormals, unsigned int _fn, int _w, int _h, float* _depths, uint32_t* _fids, CameraCU _cam, BaseCU _base);
+		void testDepthAndFidCUDA(float3* _p3ds, float3* _p2ds, uint3* _faces, float3* _fNormals, unsigned int _fn, int _w, int _h, float* _depths, unsigned int* _fids, CameraCU _cam, BaseCU _base);
 		
-		void testDepthAndFidCUDA(float3* _p3ds, float3* _p2ds, uint3* _faces, float3* _fNormals, unsigned int _fn, int _w, int _h, uint64_t* _dIds, CameraCU _cam, BaseCU _base);
+		void testDepthAndFidCUDA(float3* _p3ds, float3* _p2ds, uint3* _faces, float3* _fNormals, unsigned int _fn, int _w, int _h, unsigned long long* _dIds, CameraCU _cam, BaseCU _base);
 
 		unsigned int vn_ = 0;
 		unsigned int fn_ = 0;

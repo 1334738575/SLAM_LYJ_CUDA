@@ -121,7 +121,7 @@ namespace SLAM_LYJ_CUDA
 		testCameraCU<<<grid, block>>>(_p3ds, _p2ds, _vn, _w, _h, _cam, step);
 	}
 
-	__global__ void testDepthAndFidCU(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, float *_depths, uint32_t *_fids, CameraCU _cam, BaseCU _base, unsigned int _step)
+	__global__ void testDepthAndFidCU(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, float *_depths, unsigned int *_fids, CameraCU _cam, BaseCU _base, unsigned int _step)
 	{
 		unsigned int idx = (threadIdx.x + blockDim.x * blockIdx.x) * _step;
 		// if (idx == 0)
@@ -246,11 +246,11 @@ namespace SLAM_LYJ_CUDA
 			}
 		}
 	}
-	void ProjectorCU::testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, float *_depths, uint32_t *_fids, CameraCU _cam, BaseCU _base)
+	void ProjectorCU::testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, float *_depths, unsigned int *_fids, CameraCU _cam, BaseCU _base)
 	{
 		int threadNum = 50;
 		// cudaMemset(_depths, 0xff, _w * _h * sizeof(float)); //init outside
-		cudaMemset(_fids, 0xff, _w * _h * sizeof(uint32_t));
+		cudaMemset(_fids, 0xff, _w * _h * sizeof(unsigned int));
 		dim3 block(threadNum, 1);
 		dim3 grid(threadNum, 1);
 		unsigned int step = (_fn + threadNum * threadNum - 1) / (threadNum * threadNum);
@@ -265,16 +265,16 @@ namespace SLAM_LYJ_CUDA
 			float depth;
 			unsigned int fid;
 		};
-		uint64_t data;
+		unsigned long long data;
 	};
-	__device__ void atomicUpdateDepthID(uint64_t *addr, float new_depth, unsigned int new_fid)
+	__device__ void atomicUpdateDepthID(unsigned long long *addr, float new_depth, unsigned int new_fid)
 	{
 		union DepthID expected, desired;
 		desired.depth = new_depth;
 		desired.fid = new_fid;
 
-		uint64_t *addr_uint64 = (uint64_t *)addr;
-		uint64_t expected_uint64 = *addr_uint64;
+		unsigned long long *addr_uint64 = (unsigned long long *)addr;
+		unsigned long long expected_uint64 = *addr_uint64;
 		do
 		{
 			expected.data = expected_uint64;
@@ -283,7 +283,7 @@ namespace SLAM_LYJ_CUDA
 			expected_uint64 = atomicCAS(addr_uint64, expected_uint64, desired.data);
 		} while (expected_uint64 != expected.data);
 	}
-	__global__ void testDepthAndFidCU(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, uint64_t *_dIds, CameraCU _cam, BaseCU _base, unsigned int _step)
+	__global__ void testDepthAndFidCU(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, unsigned long long *_dIds, CameraCU _cam, BaseCU _base, unsigned int _step)
 	{
 		unsigned int idx = (threadIdx.x + blockDim.x * blockIdx.x) * _step;
 		// if (idx == 0)
@@ -370,7 +370,7 @@ namespace SLAM_LYJ_CUDA
 			}
 		}
 	}
-	void ProjectorCU::testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, uint64_t *_dIds, CameraCU _cam, BaseCU _base)
+	void ProjectorCU::testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, unsigned long long *_dIds, CameraCU _cam, BaseCU _base)
 	{
 		int threadNum = 50;
 		dim3 block(threadNum, 1);
