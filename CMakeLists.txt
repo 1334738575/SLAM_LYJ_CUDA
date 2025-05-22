@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(TEST_LYJ)
+project(CUDA_LYJ)
 
 #################################setting##################################
 set(CMAKE_CXX_STANDARD 17)
@@ -36,7 +36,7 @@ set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/install)
 
 # 安装库和头文件
 install(TARGETS ${PROJECT_NAME}
-    EXPORT TEST_LYJTargets
+    EXPORT ${PROJECT_NAME}Targets
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib     # DLL 在 Windows 下会被安装到 bin/
     RUNTIME DESTINATION bin     # 适用于 DLL 的运行时组件
@@ -49,9 +49,9 @@ PERMISSIONS OWNER_READ GROUP_READ WORLD_READ)
 
 # set(TARGETNAME ${PROJECT_NAME}Targets)
 # 导出目标配置
-install(EXPORT TEST_LYJTargets
-    FILE TEST_LYJTargets.cmake
-    NAMESPACE TEST_LYJ::
+install(EXPORT ${PROJECT_NAME}Targets
+    FILE ${PROJECT_NAME}Targets.cmake
+    NAMESPACE ${PROJECT_NAME}::
     DESTINATION lib/cmake
 )
 
@@ -59,16 +59,16 @@ install(EXPORT TEST_LYJTargets
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/TEST_LYJConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
     INSTALL_DESTINATION lib/cmake
 )
 write_basic_package_version_file(
-    TEST_LYJConfigVersion.cmake
+    ${PROJECT_NAME}ConfigVersion.cmake
     VERSION 1.0.0
     COMPATIBILITY SameMajorVersion
 )
 install(FILES 
-    ${CMAKE_CURRENT_BINARY_DIR}/TEST_LYJConfig.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/TEST_LYJConfigVersion.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
     DESTINATION lib/cmake
 )

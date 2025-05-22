@@ -5,7 +5,7 @@
 #include <random>
 #include "test.h"
 
-namespace SLAM_LYJ_CUDA
+namespace CUDA_LYJ
 {
     CUDA_LYJ_API void test1()
     {
@@ -23,7 +23,7 @@ namespace SLAM_LYJ_CUDA
         cudaMemcpy(asDev, as.data(), szBit, cudaMemcpyHostToDevice);
         cudaMemcpy(bsDev, bs.data(), szBit, cudaMemcpyHostToDevice);
 
-        SLAM_LYJ_CUDA::testCUDA(asDev, bsDev, csDev, sz);
+        CUDA_LYJ::testCUDA(asDev, bsDev, csDev, sz);
 
         std::cout << "before:" << std::endl;
         for (int i = 0; i < sz; ++i)
@@ -50,6 +50,11 @@ namespace SLAM_LYJ_CUDA
     };
     CUDA_LYJ_API void test2()
     {
+        {
+            cudaError_t err = cudaGetLastError();
+            if (err != cudaSuccess)
+                std::cout << "111" << std::endl;
+        }
         // generate data
         int fn = 1000;
         int vn = fn * 3;
@@ -151,6 +156,11 @@ namespace SLAM_LYJ_CUDA
         for (auto &did : did2s)
             did = tmp;
         memcpy(dids.data(), did2s.data(), w * h * sizeof(uint64_t));
+        {
+            cudaError_t err = cudaGetLastError();
+            if (err != cudaSuccess)
+                std::cout << "111" << std::endl;
+        }
 
         // upload
         float3 *PwsDev;
@@ -158,7 +168,7 @@ namespace SLAM_LYJ_CUDA
         cudaMemcpy(PwsDev, Pws.data(), vn * 3 * sizeof(float), cudaMemcpyHostToDevice);
         float3 *PcsDev;
         cudaMalloc((void **)&PcsDev, vn * 3 * sizeof(float));
-        SLAM_LYJ_CUDA::Mat34CU TDev;
+        CUDA_LYJ::Mat34CU TDev;
         TDev.upload(Tcw.data());
         uint3 *facesDev;
         cudaMalloc((void **)&facesDev, fn * sizeof(uint3));
@@ -170,7 +180,7 @@ namespace SLAM_LYJ_CUDA
         cudaMalloc((void **)&fNormalcsDev, fn * sizeof(float3));
         float3 *pixelsDev;
         cudaMalloc((void **)&pixelsDev, vn * sizeof(float3));
-        SLAM_LYJ_CUDA::CameraCU camDev;
+        CUDA_LYJ::CameraCU camDev;
         camDev.upload(w, h, cam.data(), camInv.data());
         float *depthsDev;
         cudaMalloc((void **)&depthsDev, w * h * sizeof(float));
@@ -181,17 +191,28 @@ namespace SLAM_LYJ_CUDA
         uint64_t *didsDev;
         cudaMalloc((void **)&didsDev, w * h * sizeof(uint64_t));
         cudaMemcpy(didsDev, dids.data(), w * h * sizeof(uint64_t), cudaMemcpyHostToDevice);
-        SLAM_LYJ_CUDA::BaseCU baseDev;
+        CUDA_LYJ::BaseCU baseDev;
         cudaDeviceSynchronize();
+        {
+            cudaError_t err = cudaGetLastError();
+            if (err != cudaSuccess)
+                std::cout << "111" << std::endl;
+        }
 
         // run
-        SLAM_LYJ_CUDA::ProjectorCU projector;
-        projector.testTransformCUDA(TDev, PwsDev, PcsDev, vn);
-        projector.testTransformNormalCUDA(TDev, fNormalwsDev, fNormalcsDev, fn);
-        projector.testCameraCUDA(PcsDev, pixelsDev, vn, w, h, camDev);
-        projector.testDepthAndFidCUDA(PcsDev, pixelsDev, facesDev, fNormalcsDev, fn, w, h, depthsDev, fidsDev, camDev, baseDev);
-        projector.testDepthAndFidCUDA(PcsDev, pixelsDev, facesDev, fNormalcsDev, fn, w, h, didsDev, camDev, baseDev);
+        CUDA_LYJ::ProjectorCU projector;
+        projector.testTransformCUDA2(TDev.dataDev_, PwsDev, PcsDev, vn);
+        // projector.testTransformCUDA(TDev, PwsDev, PcsDev, vn);
+        // projector.testTransformNormalCUDA(TDev, fNormalwsDev, fNormalcsDev, fn);
+        // projector.testCameraCUDA(PcsDev, pixelsDev, vn, w, h, camDev);
+        // projector.testDepthAndFidCUDA(PcsDev, pixelsDev, facesDev, fNormalcsDev, fn, w, h, depthsDev, fidsDev, camDev, baseDev);
+        // projector.testDepthAndFidCUDA(PcsDev, pixelsDev, facesDev, fNormalcsDev, fn, w, h, didsDev, camDev, baseDev);
         cudaDeviceSynchronize();
+        {
+            cudaError_t err = cudaGetLastError();
+            if (err != cudaSuccess)
+                std::cout << "111" << std::endl;
+        }
 
         // download
         cudaMemcpy(Pcs.data(), PcsDev, vn * 3 * sizeof(float), cudaMemcpyDeviceToHost);
@@ -200,6 +221,11 @@ namespace SLAM_LYJ_CUDA
         cudaMemcpy(fids.data(), fidsDev, w * h * sizeof(unsigned int), cudaMemcpyDeviceToHost);
         cudaMemcpy(dids.data(), didsDev, w * h * sizeof(uint64_t), cudaMemcpyDeviceToHost);
         cudaDeviceSynchronize();
+        {
+            cudaError_t err = cudaGetLastError();
+            if (err != cudaSuccess)
+                std::cout << "111" << std::endl;
+        }
 
         // free
         cudaFree(PwsDev);
@@ -211,6 +237,11 @@ namespace SLAM_LYJ_CUDA
         cudaFree(depthsDev);
         cudaFree(fidsDev);
         cudaFree(didsDev);
+        {
+            cudaError_t err = cudaGetLastError();
+            if (err != cudaSuccess)
+                std::cout << "111" << std::endl;
+        }
 
         // output
         std::ofstream f1("rawPs.txt");

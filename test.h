@@ -12,15 +12,11 @@
 #define CUDA_LYJ_API
 #endif
 
-
-
-namespace SLAM_LYJ_CUDA
+namespace CUDA_LYJ
 {
-	CUDA_LYJ_API void test1(); //add
-	CUDA_LYJ_API void test2(); //project
-	CUDA_LYJ_API void test3(); //texture2d
+	CUDA_LYJ_API void test1(); // add
+	CUDA_LYJ_API void test2(); // project
+	CUDA_LYJ_API void test3(); // texture2d
 }
-
-
 
 #endif // !TEST_LYJ_H

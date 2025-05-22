@@ -1,11 +1,11 @@
-#ifndef SLAM_LYJ_CUDACOMMON_H
-#define SLAM_LYJ_CUDACOMMON_H
+#ifndef CUDA_LYJCOMMON_H
+#define CUDA_LYJCOMMON_H
 
 #include <cuda_runtime_api.h>
 #include <cuda_runtime.h>
 #include <cuda.h>
 
-namespace SLAM_LYJ_CUDA
+namespace CUDA_LYJ
 {
 	/// <summary>
 	/// colmajor
@@ -43,6 +43,14 @@ namespace SLAM_LYJ_CUDA
 			cudaMemcpy(_data, dataDev_, 12 * sizeof(float), cudaMemcpyDeviceToHost);
 		}
 		__device__ float3 operator*(const float3 &_p) const
+		{
+			float3 ret;
+			ret.x = dataDev_[0] * _p.x + dataDev_[3] * _p.y + dataDev_[6] * _p.z + dataDev_[9];
+			ret.y = dataDev_[1] * _p.x + dataDev_[4] * _p.y + dataDev_[7] * _p.z + dataDev_[10];
+			ret.z = dataDev_[2] * _p.x + dataDev_[5] * _p.y + dataDev_[8] * _p.z + dataDev_[11];
+			return ret;
+		}
+		__device__ float3 transform(const float3 &_p) const
 		{
 			float3 ret;
 			ret.x = dataDev_[0] * _p.x + dataDev_[3] * _p.y + dataDev_[6] * _p.z + dataDev_[9];
@@ -245,4 +253,4 @@ namespace SLAM_LYJ_CUDA
 	};
 }
 
-#endif // !SLAM_LYJ_CUDACOMMON_H
+#endif // !CUDA_LYJCOMMON_H

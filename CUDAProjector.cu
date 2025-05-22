@@ -2,7 +2,7 @@
 #include "CUDACommon.h"
 #include <cstdio>
 
-namespace SLAM_LYJ_CUDA
+namespace CUDA_LYJ
 {
 	__global__ void testCU(int *_as, int *_bs, int *_cs, int _sz)
 	{
@@ -68,6 +68,34 @@ namespace SLAM_LYJ_CUDA
 		dim3 grid(1024, 1);
 		unsigned int step = (_vn + 1024 * 1024 - 1) / (1024 * 1024);
 		testTransformCU<<<grid, block>>>(_T, _ps, _rets, _vn, step);
+	}
+
+	__device__ float3 transform(float *_T, const float3 &_p)
+	{
+		float3 ret;
+		ret.x = _T[0] * _p.x + _T[3] * _p.y + _T[6] * _p.z + _T[9];
+		ret.y = _T[1] * _p.x + _T[4] * _p.y + _T[7] * _p.z + _T[10];
+		ret.z = _T[2] * _p.x + _T[5] * _p.y + _T[8] * _p.z + _T[11];
+		return ret;
+	}
+	__global__ void testTransformCU2(float *_T, float3 *_ps, float3 *_rets, unsigned int _vn, unsigned int _step)
+	{
+		unsigned int idx = (threadIdx.x + blockDim.x * blockIdx.x) * _step;
+		if (idx >= _vn)
+			return;
+		for (unsigned int vi = idx; vi < idx + _step; ++vi)
+		{
+			if (vi >= _vn)
+				break;
+			_rets[vi] = transform(_T, _ps[vi]);
+		}
+	}
+	void ProjectorCU::testTransformCUDA2(float *_T, float3 *_ps, float3 *_rets, unsigned int _vn)
+	{
+		dim3 block(1024, 1);
+		dim3 grid(1024, 1);
+		unsigned int step = (_vn + 1024 * 1024 - 1) / (1024 * 1024);
+		testTransformCU2<<<grid, block>>>(_T, _ps, _rets, _vn, step);
 	}
 
 	__global__ void testTransformNormalCU(Mat34CU _T, float3 *_normals, float3 *_rets, unsigned int _n, unsigned int _step)
