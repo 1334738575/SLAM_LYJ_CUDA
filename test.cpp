@@ -188,17 +188,10 @@ namespace CUDA_LYJ
         unsigned int *fidsDev;
         cudaMalloc((void **)&fidsDev, w * h * sizeof(unsigned int));
         cudaMemcpy(fidsDev, fids.data(), w * h * sizeof(unsigned int), cudaMemcpyHostToDevice);
-<<<<<<< HEAD
-        uint64_t *didsDev;
-        cudaMalloc((void **)&didsDev, w * h * sizeof(uint64_t));
-        cudaMemcpy(didsDev, dids.data(), w * h * sizeof(uint64_t), cudaMemcpyHostToDevice);
-        CUDA_LYJ::BaseCU baseDev;
-        == == == =
-                     unsigned long long * didsDev;
+        unsigned long long * didsDev;
         cudaMalloc((void **)&didsDev, w * h * sizeof(unsigned long long));
         cudaMemcpy(didsDev, dids.data(), w * h * sizeof(unsigned long long), cudaMemcpyHostToDevice);
-        SLAM_LYJ_CUDA::BaseCU baseDev;
->>>>>>> 2c870510a69633fdb3009e16a7be6311f14156e0
+        CUDA_LYJ::BaseCU baseDev;
         cudaDeviceSynchronize();
         {
             cudaError_t err = cudaGetLastError();
