@@ -2,6 +2,10 @@
 #define CUDA_LYJPROJECTOR_H
 
 #include "CUDACommon.h"
+#include <vector>
+#include <cuda_runtime_api.h>
+#include <cuda_runtime.h>
+#include <cuda.h>
 
 namespace CUDA_LYJ
 {
@@ -35,7 +39,7 @@ namespace CUDA_LYJ
 			h_ = h;
 			dIdsReset_.resize(w * h);
 			dIds_.resize(w * h);
-			for (auto &did : dIds)
+			for (auto &did : dIds_)
 			{
 				did.depth = FLT_MAX;
 				did.fid = UINT_MAX;
@@ -48,22 +52,22 @@ namespace CUDA_LYJ
 			camInv[3] = -1.0f * camParams[3] / camParams[1];
 
 			cudaMalloc((void **)&PwsDev_, PSize * 3 * sizeof(float));
-			cudaMemcpy(PwsDev_, Pws, PSize * 3 * sizeof(float), cudaMemcpyHost2Device);
+			cudaMemcpy(PwsDev_, Pws, PSize * 3 * sizeof(float), cudaMemcpyHostToDevice);
 			cudaMalloc((void **)&PcsDev_, PSize * 3 * sizeof(float));
 			cudaMalloc((void **)&ctrwsDev_, fSize * 3 * sizeof(float));
-			cudaMemcpy(ctrwsDev_, centers, fSize * 3 * sizeof(float), cudaMemcpyHost2Device);
+			cudaMemcpy(ctrwsDev_, centers, fSize * 3 * sizeof(float), cudaMemcpyHostToDevice);
 			cudaMalloc((void **)&ctrcsDev_, fSize * 3 * sizeof(float));
 			cudaMalloc((void **)&facesDev_, fSize * 3 * sizeof(unsigned int));
-			cudaMemcpy(facesDev_, faces, fSize * 3 * sizeof(unsigned int), cudaMemcpyHost2Device);
+			cudaMemcpy(facesDev_, faces, fSize * 3 * sizeof(unsigned int), cudaMemcpyHostToDevice);
 			cudaMalloc((void **)&fNormalwsDev_, fSize * 3 * sizeof(float));
-			cudaMemcpy(fNormalwsDev_, fNormals, fSize * 3 * sizeof(float), cudaMemcpyHost2Device);
+			cudaMemcpy(fNormalwsDev_, fNormals, fSize * 3 * sizeof(float), cudaMemcpyHostToDevice);
 			cudaMalloc((void **)&fNormalcsDev_, fSize * 3 * sizeof(float));
 			cudaMalloc((void **)&pixelsDev_, PSize * 3 * sizeof(float));
 			cudaMalloc((void **)&ctrPixelsDev_, fSize * 3 * sizeof(float));
 			camDev_.upload(w, h, camParams, camInv.data());
 			cudaMalloc((void **)&depthDev_, w * h * sizeof(float));
 			cudaMalloc((void **)&dIdsDev_, w * h * sizeof(unsigned long long));
-			cudaMemcpy(dIdsDev_, dIds_.data(), w * h * sizeof(unsigned long long), cudaMemcpyHost2Device);
+			cudaMemcpy(dIdsDev_, dIds_.data(), w * h * sizeof(unsigned long long), cudaMemcpyHostToDevice);
 			cudaMalloc((void **)&isPVisibleDev_, PSize * sizeof(char));
 			cudaMalloc((void **)&isPVisibleDev_, fSize * sizeof(char));
 		}
@@ -72,20 +76,20 @@ namespace CUDA_LYJ
 					 float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds)
 		{
 			TDev_.upload(Tcw);
-			cudaMemcpy(dIdsDev_, dIdsReset_.data(), w_ * h_ * sizeof(unsigned long long), cudaMemcpyHost2Device);
+			cudaMemcpy(dIdsDev_, dIdsReset_.data(), w_ * h_ * sizeof(unsigned long long), cudaMemcpyHostToDevice);
 
-			testTransforCUDA(TDev_, PwsDev_, PcsDev_, PSize_);
-			testTransforCUDA(TDev_, ctrwsDev_, ctrcsDev_, fSize_);
-			testTransforNormalCUDA(TDev_, fNormalwsDev_, fNormalcsDev_, fSize_);
-			testCameraCUDA(PcsDev_, pixelsDev_, PSize, w_, h_, camDev_);
-			testCameraCUDA(ctrcsDev_, ctrPixelsDev_, fSize, w_, h_, camDev_);
-			testDepthAndFidAndCheckCUDA(PcsDev_, pixelsDev_, facesDev_, fNormalcsDev_, PSize, fSize, w_, h_, ctrPixelsDev_, depthsDev_, dIdsDev_, isPVisibleDev_, isFVisibleDev_, camDev_);
+			testTransformCUDA(TDev_, PwsDev_, PcsDev_, PSize_);
+			testTransformCUDA(TDev_, ctrwsDev_, ctrcsDev_, fSize_);
+			testTransformNormalCUDA(TDev_, fNormalwsDev_, fNormalcsDev_, fSize_);
+			testCameraCUDA(PcsDev_, pixelsDev_, PSize_, w_, h_, camDev_);
+			testCameraCUDA(ctrcsDev_, ctrPixelsDev_, fSize_, w_, h_, camDev_);
+			testDepthAndFidAndCheckCUDA(PcsDev_, pixelsDev_, facesDev_, fNormalcsDev_, PSize_, fSize_, w_, h_, ctrPixelsDev_, depthDev_, dIdsDev_, isPVisibleDev_, isFVisibleDev_, camDev_);
 			cudaDeviceSynchronize();
 
-			cudaMemcpy(depths, depthsDev_, w_ * h_ * sizeof(float), cudaMemcpyDevice2Host);
-			cudaMemcpy(dIds.data(), dIdsDev_, w_ * h_ * sizeof(unsigned long long), cudaMemcpyDevice2Host);
-			cudaMemcpy(allVisiblePIds, isPVisibleDev_, w_ * h_ * sizeof(char), cudaMemcpyDevice2Host);
-			cudaMemcpy(allVisibleFIds, isFVisibleDev_, w_ * h_ * sizeof(char), cudaMemcpyDevice2Host);
+			cudaMemcpy(depths, depthDev_, w_ * h_ * sizeof(float), cudaMemcpyHostToDevice);
+			cudaMemcpy(dIds_.data(), dIdsDev_, w_ * h_ * sizeof(unsigned long long), cudaMemcpyHostToDevice);
+			cudaMemcpy(allVisiblePIds, isPVisibleDev_, w_ * h_ * sizeof(char), cudaMemcpyHostToDevice);
+			cudaMemcpy(allVisibleFIds, isFVisibleDev_, w_ * h_ * sizeof(char), cudaMemcpyHostToDevice);
 			for (int i = 0; i < w_ * h_; ++i)
 			{
 				fIds[i] = dIds_[i].fid;
@@ -104,9 +108,9 @@ namespace CUDA_LYJ
 			cudaFree(pixelsDev_);
 			cudaFree(ctrPixelsDev_);
 			cudaFree(depthDev_);
-			cudaFree(didsDev_);
-			cudaFree(isPVisibaleDev_);
-			cudaFree(isFVisibaleDev_);
+			cudaFree(dIdsDev_);
+			cudaFree(isPVisibleDev_);
+			cudaFree(isFVisibleDev_);
 		}
 
 		void testTransformCUDA(Mat34CU _T, float3 *_ps, float3 *_rets, unsigned int _vn);
@@ -118,12 +122,14 @@ namespace CUDA_LYJ
 
 		void testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, float *_depths, unsigned int *_fids, CameraCU _cam, BaseCU _base);
 
-		void testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, unsigned long long *_dIds, CameraCU _cam, BaseCU _base);
+		void testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, unsigned long long *_dIds, CameraCU _cam);
 
-		unsigned int PSize = 0;
-		unsigned int fSize = 0;
-		int w_ = 0;
-		int h_ = 0;
+		void testDepthAndFidAndCheckCUDA(float3* _p3ds, float3* _p2ds, uint3* _faces, float3* _fNormals, unsigned int _vn, unsigned int _fn, unsigned int _w, unsigned int _h, float3* _ctr2ds, float* _depths, unsigned long long* _dIds, char* _isPVisible_, char* _isFVisible_, const CameraCU& _cam);
+
+		unsigned int PSize_ = 0;
+		unsigned int fSize_ = 0;
+		unsigned int w_ = 0;
+		unsigned int h_ = 0;
 		std::vector<DepthID2> dIds_;
 		std::vector<unsigned long long> dIdsReset_;
 		std::vector<float> Pcs;
@@ -147,7 +153,7 @@ namespace CUDA_LYJ
 
 		Mat34CU TDev_;
 		float *depthDev_;
-		unsigned long long *didsDev_;
+		unsigned long long *dIdsDev_;
 		char *isPVisibleDev_;
 		char *isFVisibleDev_;
 	};

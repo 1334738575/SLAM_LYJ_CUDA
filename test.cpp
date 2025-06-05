@@ -39,7 +39,7 @@ namespace CUDA_LYJ
             std::cout << cs[i] << std::endl;
     }
 
-    union DepthID2
+    union DepthID22
     {
         struct
         {
@@ -149,8 +149,8 @@ namespace CUDA_LYJ
         fP.close();
         fcam.close();
         std::vector<unsigned long long> dids(w * h);
-        std::vector<DepthID2> did2s(w * h);
-        DepthID2 tmp;
+        std::vector<DepthID22> did2s(w * h);
+        DepthID22 tmp;
         tmp.depth = FLT_MAX;
         tmp.fid = UINT_MAX;
         for (auto &did : did2s)
@@ -377,7 +377,7 @@ namespace CUDA_LYJ
         const float *centers, const float *fNormals, const unsigned int *faces, const unsigned int fSize,
         float *camParams, const int w, const int h)
     {
-        ProjectorCU pro = new ProjectorCU();
+        ProjectorCU* pro = new ProjectorCU();
         pro->create(Pws, PSize, centers, fNormals, faces, fSize, camParams, w, h);
         return (void *)pro;
     }

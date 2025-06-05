@@ -4,6 +4,32 @@
 
 namespace CUDA_LYJ
 {
+	__device__ float dot3(const float3& p1, const float3& p2)
+	{
+		return p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
+	}
+	__device__ float crossProduct2(const float2& p1, const float2& p2)
+	{
+		return p1.x * p2.y - p1.y * p2.x;
+	}
+	__device__ char isP2dInTriangleCU(const float2& AB, const float2& BC, const float2& CA,
+		const float2& AP, const float2& BP, const float2& CP)
+	{
+		float v1 = crossProduct2(AB, AP);
+		float v2 = crossProduct2(BC, BP);
+		float v3 = crossProduct2(CA, CP);
+		if (v1 >= 0 && v2 >= 0 && v3 >= 0)
+			return (char)1;
+		if (v1 <= 0 && v2 <= 0 && v3 <= 0)
+			return (char)1;
+		return (char)0;
+	}
+	__device__ void imageToPoint(float* _camInv, const float& _u, const float& _v, float3& _p3d)
+	{
+		_p3d.x = _u * _camInv[0] + _camInv[2];
+		_p3d.y = _v * _camInv[1] + _camInv[3];
+		_p3d.z = 1.0f;
+	}
 
 	__device__ float3 transform(float *_T, const float3 &_p)
 	{
@@ -21,7 +47,7 @@ namespace CUDA_LYJ
 		return;
 	}
 
-	__device__ float3 transformNormal(float *_T, const float3 &_n) const
+	__device__ float3 transformNormal(float *_T, const float3 &_n)
 	{
 		float3 ret;
 		ret.x = _T[0] * _n.x + _T[3] * _n.y + _T[6] * _n.z;
@@ -29,7 +55,7 @@ namespace CUDA_LYJ
 		ret.z = _T[2] * _n.x + _T[5] * _n.y + _T[8] * _n.z;
 		return ret;
 	}
-	__device__ void transformNormal(float *_T, const float3 &_n, float3 &ret) const
+	__device__ void transformNormal(float *_T, const float3 &_n, float3 &_ret)
 	{
 		_ret.x = _T[0] * _n.x + _T[3] * _n.y + _T[6] * _n.z;
 		_ret.y = _T[1] * _n.x + _T[4] * _n.y + _T[7] * _n.z;
@@ -182,7 +208,7 @@ namespace CUDA_LYJ
 		dim3 block(1024, 1);
 		dim3 grid(1024, 1);
 		unsigned int step = (_vn + 1024 * 1024 - 1) / (1024 * 1024);
-		testCameraCU<<<grid, block>>>(_p3ds, _p2ds, _vn, _w, _h, _cam.paramsdDev, step);
+		testCameraCU<<<grid, block>>>(_p3ds, _p2ds, _vn, _w, _h, _cam.paramsDev_, step);
 	}
 
 	__global__ void testDepthAndFidCU(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, float *_depths, unsigned int *_fids, CameraCU _cam, BaseCU _base, unsigned int _step)
@@ -446,7 +472,7 @@ namespace CUDA_LYJ
 		dim3 block(threadNum, 1);
 		dim3 grid(threadNum, 1);
 		unsigned int step = (_fn + threadNum * threadNum - 1) / (threadNum * threadNum);
-		testDepthAndFidCU<<<grid, block>>>(_p3ds, _p2ds, _faces, _fNormals, _fn, _w, _h, _dIds, _cam.paramInvDev_, step);
+		testDepthAndFidCU<<<grid, block>>>(_p3ds, _p2ds, _faces, _fNormals, _fn, _w, _h, _dIds, _cam.paramsInvDev_, step);
 	}
 
 	__global__ void dIds2Depth(unsigned long long *_dIds, float *_depth, unsigned int _w, unsigned int _h, unsigned int _step)
@@ -461,7 +487,7 @@ namespace CUDA_LYJ
 			_depth[ind] = didTmp.depth;
 		}
 	}
-	__global__ void testPointUVZ(float3 *_p2ds, char *_isVisible, float *_depth, unsigned int _w, unsigned int _h, unsigned int _vn, unsigned int _step)
+	__global__ void testPoint2UVZ(float3 *_p2ds, char *_isVisible, float *_depth, unsigned int _w, unsigned int _h, unsigned int _vn, unsigned int _step)
 	{
 		unsigned int idx = (threadIdx.x + blockDim.x * blockIdx.x) * _step;
 		if (idx >= _vn)
@@ -485,7 +511,7 @@ namespace CUDA_LYJ
 		}
 	}
 
-	__global__ void testCenterUVZ(char *_isPVisible, float3 *_ctr2ds, char *_isVisible, float *_depth, unsigned int _w, unsigned int _h, unsigned int _fn, unsigned int _step)
+	__global__ void testCenter2UVZ(uint3* _faces, char *_isPVisible, float3 *_ctr2ds, char *_isVisible, float *_depth, unsigned int _w, unsigned int _h, unsigned int _fn, unsigned int _step)
 	{
 		unsigned int idx = (threadIdx.x + blockDim.x * blockIdx.x) * _step;
 		if (idx >= _fn)
@@ -511,22 +537,22 @@ namespace CUDA_LYJ
 		}
 	}
 
-	void ProjectCU::testDepthAndFidAndCheckCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _vn, unsigned int _fn, int _w, int _h, float3 *_ctr2ds, float *_depths, unsigned long long *_dIds, char *_isPVisible_, char *_isFVisible_, const CameraCU &_cam)
+	void ProjectorCU::testDepthAndFidAndCheckCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _vn, unsigned int _fn, unsigned int _w, unsigned int _h, float3 *_ctr2ds, float *_depths, unsigned long long *_dIds, char *_isPVisible, char *_isFVisible, const CameraCU &_cam)
 	{
 		int threadNum = 50;
 		dim3 block(threadNum, 1);
 		dim3 grid(threadNum, 1);
 		unsigned int stepF = (_fn + threadNum * threadNum - 1) / (threadNum * threadNum);
-		testDepthAndFidCU<<<gird, block>>>(_p3ds, _p2ds, _faces, _fNormals, _fn, _w, _h, _dIds, _cam.paramsInvDev_, stepF);
+		testDepthAndFidCU<<<grid, block>>>(_p3ds, _p2ds, _faces, _fNormals, _fn, _w, _h, _dIds, _cam.paramsInvDev_, stepF);
 
 		unsigned int stepI = (_w * _h + threadNum * threadNum - 1) / (threadNum * threadNum);
-		dIds2Depth<<<gird, block>>>(_dIds, _depths, _w, _h, _dIds, stepI);
+		dIds2Depth<<<grid, block>>>(_dIds, _depths, _w, _h, stepI);
 
 		unsigned int stepV = (_vn + threadNum * threadNum - 1) / (threadNum * threadNum);
 		cudaMemset(_isPVisible, 0, _vn * sizeof(char));
-		testPoint2UVZ<<<gird, block>>>(_p2ds, _isPVisible, _depths, _w, _h, _vn, stepV);
+		testPoint2UVZ<<<grid, block>>>(_p2ds, _isPVisible, _depths, _w, _h, _vn, stepV);
 
 		cudaMemset(_isFVisible, 0, _fn * sizeof(char));
-		testPoint2UVZ<<<gird, block>>>(_isPVisible, _ctr2ds, _isFVisible, _depths, _w, _h, _fn, stepF);
+		testCenter2UVZ<<<grid, block>>>(_faces, _isPVisible, _ctr2ds, _isFVisible, _depths, _w, _h, _fn, stepF);
 	}
 }
