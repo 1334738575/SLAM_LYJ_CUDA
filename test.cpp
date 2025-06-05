@@ -188,7 +188,7 @@ namespace CUDA_LYJ
         unsigned int *fidsDev;
         cudaMalloc((void **)&fidsDev, w * h * sizeof(unsigned int));
         cudaMemcpy(fidsDev, fids.data(), w * h * sizeof(unsigned int), cudaMemcpyHostToDevice);
-        unsigned long long * didsDev;
+        unsigned long long *didsDev;
         cudaMalloc((void **)&didsDev, w * h * sizeof(unsigned long long));
         cudaMemcpy(didsDev, dids.data(), w * h * sizeof(unsigned long long), cudaMemcpyHostToDevice);
         CUDA_LYJ::BaseCU baseDev;
@@ -369,6 +369,30 @@ namespace CUDA_LYJ
         cudaDestroyTextureObject(texObj);
         cudaFreeArray(cuArray);
 
+        return;
+    }
+
+    CUDA_LYJ_API ProHandle initProjector(
+        const float *Pws, const unsigned int PSize,
+        const float *centers, const float *fNormals, const unsigned int *faces, const unsigned int fSize,
+        float *camParams, const int w, const int h)
+    {
+        ProjectorCU pro = new ProjectorCU();
+        pro->create(Pws, PSize, centers, fNormals, faces, fSize, camParams, w, h);
+        return (void *)pro;
+    }
+    CUDA_LYJ_API void project(ProHandle handle,
+                              float *Tcw,
+                              float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds)
+    {
+        ProjectorCU *pro = (ProjectorCU *)handle;
+        pro->project(Tcw, depths, fIds, allVisiblePIds, allVisibleFIds);
+    }
+    CUDA_LYJ_API void release(ProHandle handle)
+    {
+        ProjectorCU *pro = (ProjectorCU *)handle;
+        pro->release();
+        delete pro;
         return;
     }
 }
