@@ -69,7 +69,7 @@ namespace CUDA_LYJ
 			cudaMalloc((void **)&dIdsDev_, w * h * sizeof(unsigned long long));
 			cudaMemcpy(dIdsDev_, dIds_.data(), w * h * sizeof(unsigned long long), cudaMemcpyHostToDevice);
 			cudaMalloc((void **)&isPVisibleDev_, PSize * sizeof(char));
-			cudaMalloc((void **)&isPVisibleDev_, fSize * sizeof(char));
+			cudaMalloc((void **)&isFVisibleDev_, fSize * sizeof(char));
 		}
 
 		void project(float *Tcw,
@@ -86,10 +86,10 @@ namespace CUDA_LYJ
 			testDepthAndFidAndCheckCUDA(PcsDev_, pixelsDev_, facesDev_, fNormalcsDev_, PSize_, fSize_, w_, h_, ctrPixelsDev_, depthDev_, dIdsDev_, isPVisibleDev_, isFVisibleDev_, camDev_);
 			cudaDeviceSynchronize();
 
-			cudaMemcpy(depths, depthDev_, w_ * h_ * sizeof(float), cudaMemcpyHostToDevice);
-			cudaMemcpy(dIds_.data(), dIdsDev_, w_ * h_ * sizeof(unsigned long long), cudaMemcpyHostToDevice);
-			cudaMemcpy(allVisiblePIds, isPVisibleDev_, w_ * h_ * sizeof(char), cudaMemcpyHostToDevice);
-			cudaMemcpy(allVisibleFIds, isFVisibleDev_, w_ * h_ * sizeof(char), cudaMemcpyHostToDevice);
+			cudaMemcpy(depths, depthDev_, w_ * h_ * sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(dIds_.data(), dIdsDev_, w_ * h_ * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+			cudaMemcpy(allVisiblePIds, isPVisibleDev_, PSize_ * sizeof(char), cudaMemcpyDeviceToHost);
+			cudaMemcpy(allVisibleFIds, isFVisibleDev_, fSize_ * sizeof(char), cudaMemcpyDeviceToHost);
 			for (int i = 0; i < w_ * h_; ++i)
 			{
 				fIds[i] = dIds_[i].fid;
@@ -113,23 +113,20 @@ namespace CUDA_LYJ
 			cudaFree(isFVisibleDev_);
 		}
 
-		void testTransformCUDA(Mat34CU _T, float3 *_ps, float3 *_rets, unsigned int _vn);
-		void testTransformCUDA2(float *_T, float3 *_ps, float3 *_rets, unsigned int _vn);
+		void testTransformCUDA(const Mat34CU &_T, float3 *_ps, float3 *_rets, unsigned int _vn);
 
-		void testTransformNormalCUDA(Mat34CU _T, float3 *_normals, float3 *_rets, unsigned int _n);
+		void testTransformNormalCUDA(const Mat34CU &_T, float3 *_normals, float3 *_rets, unsigned int _n);
 
-		void testCameraCUDA(float3 *_p3ds, float3 *_p2ds, unsigned int _vn, int _w, int _h, CameraCU _cam);
+		void testCameraCUDA(float3 *_p3ds, float3 *_p2ds, unsigned int _vn, int _w, int _h, const CameraCU &_cam);
 
-		void testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, float *_depths, unsigned int *_fids, CameraCU _cam, BaseCU _base);
+		void testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, unsigned long long *_dIds, const CameraCU &_cam);
 
-		void testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, unsigned long long *_dIds, CameraCU _cam);
-
-		void testDepthAndFidAndCheckCUDA(float3* _p3ds, float3* _p2ds, uint3* _faces, float3* _fNormals, unsigned int _vn, unsigned int _fn, unsigned int _w, unsigned int _h, float3* _ctr2ds, float* _depths, unsigned long long* _dIds, char* _isPVisible_, char* _isFVisible_, const CameraCU& _cam);
+		void testDepthAndFidAndCheckCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _vn, unsigned int _fn, int _w, int _h, float3 *_ctr2ds, float *_depths, unsigned long long *_dIds, char *_isPVisible, char *_isFVisible, const CameraCU &_cam);
 
 		unsigned int PSize_ = 0;
 		unsigned int fSize_ = 0;
-		unsigned int w_ = 0;
-		unsigned int h_ = 0;
+		int w_ = 0;
+		int h_ = 0;
 		std::vector<DepthID2> dIds_;
 		std::vector<unsigned long long> dIdsReset_;
 		std::vector<float> Pcs;
@@ -137,8 +134,8 @@ namespace CUDA_LYJ
 		std::vector<float> ctrcs;
 		std::vector<float> ctrPixels;
 		std::vector<float> fnormalcs;
-		std::vector<float> pVisible;
-		std::vector<float> fVisible;
+		std::vector<char> pVisible;
+		std::vector<char> fVisible;
 
 		CameraCU camDev_;
 		float3 *PwsDev_;
@@ -152,7 +149,7 @@ namespace CUDA_LYJ
 		float3 *ctrPixelsDev_;
 
 		Mat34CU TDev_;
-		float *depthDev_;
+		float *depthDev_ = nullptr;
 		unsigned long long *dIdsDev_;
 		char *isPVisibleDev_;
 		char *isFVisibleDev_;
