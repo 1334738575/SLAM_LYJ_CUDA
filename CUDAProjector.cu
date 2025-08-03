@@ -311,7 +311,7 @@ namespace CUDA_LYJ
 	}
 	void ProjectorCU::testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, unsigned long long *_dIds, const CameraCU &_cam)
 	{
-		int threadNum = 50;
+		int threadNum = 1024;
 		dim3 block(threadNum, 1);
 		dim3 grid(threadNum, 1);
 		unsigned int step = (_fn + threadNum * threadNum - 1) / (threadNum * threadNum);
@@ -388,7 +388,7 @@ namespace CUDA_LYJ
 
 	void ProjectorCU::testDepthAndFidAndCheckCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _vn, unsigned int _fn, int _w, int _h, float3 *_ctr2ds, float *_depths, unsigned long long *_dIds, char *_isPVisible, char *_isFVisible, const CameraCU &_cam)
 	{
-		int threadNum = 50;
+		int threadNum = 1024;
 		dim3 block(threadNum, 1);
 		dim3 grid(threadNum, 1);
 		unsigned int stepF = (_fn + threadNum * threadNum - 1) / (threadNum * threadNum);

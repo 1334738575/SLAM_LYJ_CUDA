@@ -201,7 +201,7 @@ namespace CUDA_LYJ
 
         // run
         CUDA_LYJ::ProjectorCU projector;
-        projector.testTransformCUDA2(TDev.dataDev_, PwsDev, PcsDev, vn);
+        // projector.testTransformCUDA2(TDev.dataDev_, PwsDev, PcsDev, vn);
         // projector.testTransformCUDA(TDev, PwsDev, PcsDev, vn);
         // projector.testTransformNormalCUDA(TDev, fNormalwsDev, fNormalcsDev, fn);
         // projector.testCameraCUDA(PcsDev, pixelsDev, vn, w, h, camDev);
@@ -377,7 +377,7 @@ namespace CUDA_LYJ
         const float *centers, const float *fNormals, const unsigned int *faces, const unsigned int fSize,
         float *camParams, const int w, const int h)
     {
-        ProjectorCU* pro = new ProjectorCU();
+        ProjectorCU *pro = new ProjectorCU();
         pro->create(Pws, PSize, centers, fNormals, faces, fSize, camParams, w, h);
         return (void *)pro;
     }
