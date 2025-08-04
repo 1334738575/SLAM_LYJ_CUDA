@@ -13,6 +13,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Od /Ob0")
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")
 add_link_options(/DEBUG) #生成调试信息（测试在visual studio中有效）
 
+set(${PROJECT_NAME}_LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/Output)
 
 #################################package##################################
 enable_language(CUDA)
@@ -29,6 +30,15 @@ $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(${PROJECT_NAME} ${CUDA_LIBRARIES})
+
+# ################################output##################################
+if(DEFINED ${PROJECT_NAME}_LIBRARY_OUTPUT_PATH)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY ${${PROJECT_NAME}_LIBRARY_OUTPUT_PATH}
+        ARCHIVE_OUTPUT_DIRECTORY ${${PROJECT_NAME}_LIBRARY_OUTPUT_PATH}
+        RUNTIME_OUTPUT_DIRECTORY ${${PROJECT_NAME}_LIBRARY_OUTPUT_PATH}
+    )
+endif()
 
 #################################test##################################
 add_executable(test example/main.cpp)

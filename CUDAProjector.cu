@@ -234,11 +234,9 @@ namespace CUDA_LYJ
 		{
 			if (fi >= _fn)
 				break;
-			if (_fNormals[fi].z >= 0)
-				continue;
-			if (_p2ds[_faces[fi].x].z == 0 || _p2ds[_faces[fi].y].z == 0 || _p2ds[_faces[fi].z].z == 0)
-				continue;
-			if (_p2ds[_faces[fi].x].z <= 0 && _p2ds[_faces[fi].y].z <= 0 && _p2ds[_faces[fi].z].z <= 0)
+			// if (_fNormals[fi].z >= 0)
+			// continue;
+			if (_p2ds[_faces[fi].x].z <= 0 || _p2ds[_faces[fi].y].z <= 0 || _p2ds[_faces[fi].z].z <= 0)
 				continue;
 			maxu = _p2ds[_faces[fi].x].x;
 			minu = _p2ds[_faces[fi].x].x;
