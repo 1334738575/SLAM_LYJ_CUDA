@@ -47,7 +47,6 @@ target_include_directories(test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test ${PROJECT_NAME})
 
 #################################install##################################
-set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/install)
 
 # 安装库和头文件
 install(TARGETS ${PROJECT_NAME}
