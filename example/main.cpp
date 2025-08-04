@@ -1,4 +1,4 @@
-#include <test.h>
+#include <CUDAInclude.h>
 
 int main(int argc, char *argv[])
 {
