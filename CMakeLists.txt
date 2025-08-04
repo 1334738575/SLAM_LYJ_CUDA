@@ -42,9 +42,9 @@ if(DEFINED ${PROJECT_NAME}_LIBRARY_OUTPUT_PATH)
 endif()
 
 #################################test##################################
-add_executable(test example/main.cpp)
-target_include_directories(test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(test ${PROJECT_NAME})
+add_executable(${PROJECT_NAME}Bin example/main.cpp)
+target_include_directories(${PROJECT_NAME}Bin PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(${PROJECT_NAME}Bin ${PROJECT_NAME})
 
 #################################install##################################
 
