@@ -3,7 +3,7 @@
 #include <vector>
 #include <fstream>
 #include <random>
-#include "test.h"
+#include "CUDAInclude.h"
 
 namespace CUDA_LYJ
 {

@@ -1,5 +1,5 @@
-#ifndef TEST_LYJ_H
-#define TEST_LYJ_H
+#ifndef CUDA_INCLUDE_H
+#define CUDA_INCLUDE_H
 
 // export
 #ifdef WIN32
@@ -29,4 +29,4 @@ namespace CUDA_LYJ
 	CUDA_LYJ_API void release(ProHandle handle);
 }
 
-#endif // !TEST_LYJ_H
+#endif // !CUDA_INCLUDE_H
