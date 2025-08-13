@@ -383,10 +383,11 @@ namespace CUDA_LYJ
     }
     CUDA_LYJ_API void project(ProHandle handle,
                               float *Tcw,
+                              float minD, float maxD,
                               float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds)
     {
         ProjectorCU *pro = (ProjectorCU *)handle;
-        pro->project(Tcw, depths, fIds, allVisiblePIds, allVisibleFIds);
+        pro->project(Tcw, minD, maxD, depths, fIds, allVisiblePIds, allVisibleFIds);
     }
     CUDA_LYJ_API void release(ProHandle handle)
     {

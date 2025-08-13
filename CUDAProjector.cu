@@ -216,7 +216,13 @@ namespace CUDA_LYJ
 			expected_uint64 = atomicCAS(addr_uint64, expected_uint64, desired.data);
 		} while (expected_uint64 != expected.data);
 	}
-	__global__ void testDepthAndFidCU(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, unsigned long long *_dIds, float *_camInv, unsigned int _step)
+	__device__ bool checkDepth(const float &_minD, const float &_maxD, const float &_d)
+	{
+		if (_d > _minD && _d < _maxD)
+			return true;
+		return false;
+	}
+	__global__ void testDepthAndFidCU(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, float _minD, float _maxD, unsigned long long *_dIds, float *_camInv, unsigned int _step)
 	{
 		unsigned int idx = (threadIdx.x + blockDim.x * blockIdx.x) * _step;
 		// if (idx == 0)
@@ -236,6 +242,8 @@ namespace CUDA_LYJ
 				break;
 			// if (_fNormals[fi].z >= 0)
 			// continue;
+			if (!checkDepth(_minD, _maxD, _p2ds[_faces[fi].x].z) && !checkDepth(_minD, _maxD, _p2ds[_faces[fi].y].z) && !checkDepth(_minD, _maxD, _p2ds[_faces[fi].z].z))
+				continue;
 			if (_p2ds[_faces[fi].x].z <= 0 || _p2ds[_faces[fi].y].z <= 0 || _p2ds[_faces[fi].z].z <= 0)
 				continue;
 			maxu = _p2ds[_faces[fi].x].x;
@@ -302,18 +310,20 @@ namespace CUDA_LYJ
 					if (dot3(_fNormals[fi], p) == 0)
 						continue;
 					depth = -1 * d / dot3(_fNormals[fi], p);
+					if (!checkDepth(_minD, _maxD, depth))
+						continue;
 					atomicUpdateDepthID(_dIds + loc, depth, fi);
 				}
 			}
 		}
 	}
-	void ProjectorCU::testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, unsigned long long *_dIds, const CameraCU &_cam)
+	void ProjectorCU::testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, float _minD, float _maxD, unsigned long long *_dIds, const CameraCU &_cam)
 	{
 		int threadNum = 1024;
 		dim3 block(threadNum, 1);
 		dim3 grid(threadNum, 1);
 		unsigned int step = (_fn + threadNum * threadNum - 1) / (threadNum * threadNum);
-		testDepthAndFidCU<<<grid, block>>>(_p3ds, _p2ds, _faces, _fNormals, _fn, _w, _h, _dIds, _cam.paramsInvDev_, step);
+		testDepthAndFidCU<<<grid, block>>>(_p3ds, _p2ds, _faces, _fNormals, _fn, _w, _h, _minD, _maxD, _dIds, _cam.paramsInvDev_, step);
 	}
 
 	__global__ void dIds2Depth(unsigned long long *_dIds, float *_depth, unsigned int _w, unsigned int _h, unsigned int _step)
@@ -384,13 +394,16 @@ namespace CUDA_LYJ
 		}
 	}
 
-	void ProjectorCU::testDepthAndFidAndCheckCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _vn, unsigned int _fn, int _w, int _h, float3 *_ctr2ds, float *_depths, unsigned long long *_dIds, char *_isPVisible, char *_isFVisible, const CameraCU &_cam)
+	void ProjectorCU::testDepthAndFidAndCheckCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals,
+												  unsigned int _vn, unsigned int _fn, int _w, int _h, float3 *_ctr2ds, float _minD, float _maxD,
+												  float *_depths, unsigned long long *_dIds, char *_isPVisible, char *_isFVisible,
+												  const CameraCU &_cam)
 	{
 		int threadNum = 1024;
 		dim3 block(threadNum, 1);
 		dim3 grid(threadNum, 1);
 		unsigned int stepF = (_fn + threadNum * threadNum - 1) / (threadNum * threadNum);
-		testDepthAndFidCU<<<grid, block>>>(_p3ds, _p2ds, _faces, _fNormals, _fn, _w, _h, _dIds, _cam.paramsInvDev_, stepF);
+		testDepthAndFidCU<<<grid, block>>>(_p3ds, _p2ds, _faces, _fNormals, _fn, _w, _h, _minD, _maxD, _dIds, _cam.paramsInvDev_, stepF);
 
 		unsigned int stepI = (_w * _h + threadNum * threadNum - 1) / (threadNum * threadNum);
 		dIds2Depth<<<grid, block>>>(_dIds, _depths, _w, _h, stepI);

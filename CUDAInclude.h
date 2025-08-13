@@ -25,6 +25,7 @@ namespace CUDA_LYJ
 		float *camParams, const int w, const int h);
 	CUDA_LYJ_API void project(ProHandle handle,
 							  float *Tcw,
+							  float minD, float maxD,
 							  float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds);
 	CUDA_LYJ_API void release(ProHandle handle);
 }

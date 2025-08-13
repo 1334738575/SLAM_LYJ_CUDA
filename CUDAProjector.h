@@ -73,6 +73,7 @@ namespace CUDA_LYJ
 		}
 
 		void project(float *Tcw,
+					 float minD, float maxD,
 					 float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds)
 		{
 			TDev_.upload(Tcw);
@@ -83,7 +84,7 @@ namespace CUDA_LYJ
 			testTransformNormalCUDA(TDev_, fNormalwsDev_, fNormalcsDev_, fSize_);
 			testCameraCUDA(PcsDev_, pixelsDev_, PSize_, w_, h_, camDev_);
 			testCameraCUDA(ctrcsDev_, ctrPixelsDev_, fSize_, w_, h_, camDev_);
-			testDepthAndFidAndCheckCUDA(PcsDev_, pixelsDev_, facesDev_, fNormalcsDev_, PSize_, fSize_, w_, h_, ctrPixelsDev_, depthDev_, dIdsDev_, isPVisibleDev_, isFVisibleDev_, camDev_);
+			testDepthAndFidAndCheckCUDA(PcsDev_, pixelsDev_, facesDev_, fNormalcsDev_, PSize_, fSize_, w_, h_, ctrPixelsDev_, minD, maxD, depthDev_, dIdsDev_, isPVisibleDev_, isFVisibleDev_, camDev_);
 			cudaDeviceSynchronize();
 
 			cudaMemcpy(depths, depthDev_, w_ * h_ * sizeof(float), cudaMemcpyDeviceToHost);
@@ -121,7 +122,10 @@ namespace CUDA_LYJ
 
 		void testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, unsigned long long *_dIds, const CameraCU &_cam);
 
-		void testDepthAndFidAndCheckCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _vn, unsigned int _fn, int _w, int _h, float3 *_ctr2ds, float *_depths, unsigned long long *_dIds, char *_isPVisible, char *_isFVisible, const CameraCU &_cam);
+		void testDepthAndFidAndCheckCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals,
+										 unsigned int _vn, unsigned int _fn, int _w, int _h, float3 *_ctr2ds, float _minD, float _maxD,
+										 float *_depths, unsigned long long *_dIds, char *_isPVisible, char *_isFVisible,
+										 const CameraCU &_cam);
 
 		unsigned int PSize_ = 0;
 		unsigned int fSize_ = 0;
