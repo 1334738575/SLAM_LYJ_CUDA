@@ -7,48 +7,6 @@
 
 namespace CUDA_LYJ
 {
-    CUDA_LYJ_API void test1()
-    {
-        int sz = 100;
-        int szBit = sz * sizeof(int);
-        std::vector<int> as(100, 0);
-        std::vector<int> bs(100, 1);
-        std::vector<int> cs(100, 0);
-        int *asDev;
-        int *bsDev;
-        int *csDev;
-        cudaMalloc((void **)&asDev, szBit);
-        cudaMalloc((void **)&bsDev, szBit);
-        cudaMalloc((void **)&csDev, szBit);
-        cudaMemcpy(asDev, as.data(), szBit, cudaMemcpyHostToDevice);
-        cudaMemcpy(bsDev, bs.data(), szBit, cudaMemcpyHostToDevice);
-
-        CUDA_LYJ::testCUDA(asDev, bsDev, csDev, sz);
-
-        std::cout << "before:" << std::endl;
-        for (int i = 0; i < sz; ++i)
-            std::cout << cs[i] << std::endl;
-
-        cudaMemcpy(cs.data(), csDev, szBit, cudaMemcpyDeviceToHost);
-        cudaFree(asDev);
-        cudaFree(bsDev);
-        cudaFree(csDev);
-
-        std::cout << "after:" << std::endl;
-        for (int i = 0; i < sz; ++i)
-            std::cout << cs[i] << std::endl;
-    }
-
-    union DepthID22
-    {
-        struct
-        {
-            float depth;
-            unsigned int fid;
-        };
-        unsigned long long data;
-    };
-    CUDA_LYJ_API void test2()
     {
         {
             cudaError_t err = cudaGetLastError();
@@ -298,7 +256,7 @@ namespace CUDA_LYJ
 
         return;
     }
-    CUDA_LYJ_API void test3()
+    CUDA_LYJ_API void testTexture()
     {
         // base
         int w = 160;
@@ -383,11 +341,11 @@ namespace CUDA_LYJ
     }
     CUDA_LYJ_API void project(ProHandle handle,
                               float *Tcw,
-                              float minD, float maxD,
-                              float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds)
+                              float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds,
+                              float minD, float maxD, float csTh, float detDTh)
     {
         ProjectorCU *pro = (ProjectorCU *)handle;
-        pro->project(Tcw, minD, maxD, depths, fIds, allVisiblePIds, allVisibleFIds);
+        pro->project(Tcw, depths, fIds, allVisiblePIds, allVisibleFIds, minD, maxD, csTh, detDTh);
     }
     CUDA_LYJ_API void release(ProHandle handle)
     {

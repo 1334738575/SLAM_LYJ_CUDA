@@ -9,8 +9,6 @@
 
 namespace CUDA_LYJ
 {
-	void testCUDA(int *_as, int *_bs, int *_cs, int _sz);
-
 	void testTextureCUDA(float *_output, int _w, int _h, cudaTextureObject_t _texObj);
 
 	union DepthID2
@@ -73,8 +71,8 @@ namespace CUDA_LYJ
 		}
 
 		void project(float *Tcw,
-					 float minD, float maxD,
-					 float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds)
+					 float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds,
+					 float minD = 0, float maxD = FLT_MAX, float csTh = 0, float detDTh = 1)
 		{
 			TDev_.upload(Tcw);
 			cudaMemcpy(dIdsDev_, dIdsReset_.data(), w_ * h_ * sizeof(unsigned long long), cudaMemcpyHostToDevice);
@@ -84,7 +82,7 @@ namespace CUDA_LYJ
 			testTransformNormalCUDA(TDev_, fNormalwsDev_, fNormalcsDev_, fSize_);
 			testCameraCUDA(PcsDev_, pixelsDev_, PSize_, w_, h_, camDev_);
 			testCameraCUDA(ctrcsDev_, ctrPixelsDev_, fSize_, w_, h_, camDev_);
-			testDepthAndFidAndCheckCUDA(PcsDev_, pixelsDev_, facesDev_, fNormalcsDev_, PSize_, fSize_, w_, h_, ctrPixelsDev_, minD, maxD, depthDev_, dIdsDev_, isPVisibleDev_, isFVisibleDev_, camDev_);
+			testDepthAndFidAndCheckCUDA(PcsDev_, pixelsDev_, facesDev_, fNormalcsDev_, PSize_, fSize_, w_, h_, ctrPixelsDev_, minD, maxD, csTh, detDTh, depthDev_, dIdsDev_, isPVisibleDev_, isFVisibleDev_, camDev_);
 			cudaDeviceSynchronize();
 
 			cudaMemcpy(depths, depthDev_, w_ * h_ * sizeof(float), cudaMemcpyDeviceToHost);
@@ -120,10 +118,8 @@ namespace CUDA_LYJ
 
 		void testCameraCUDA(float3 *_p3ds, float3 *_p2ds, unsigned int _vn, int _w, int _h, const CameraCU &_cam);
 
-		void testDepthAndFidCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals, unsigned int _fn, int _w, int _h, unsigned long long *_dIds, const CameraCU &_cam);
-
 		void testDepthAndFidAndCheckCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals,
-										 unsigned int _vn, unsigned int _fn, int _w, int _h, float3 *_ctr2ds, float _minD, float _maxD,
+										 unsigned int _vn, unsigned int _fn, int _w, int _h, float3 *_ctr2ds, float _minD, float _maxD, float _csTh, float _detDTh,
 										 float *_depths, unsigned long long *_dIds, char *_isPVisible, char *_isFVisible,
 										 const CameraCU &_cam);
 

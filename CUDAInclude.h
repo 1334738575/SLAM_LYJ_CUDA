@@ -14,9 +14,7 @@
 
 namespace CUDA_LYJ
 {
-	CUDA_LYJ_API void test1(); // add
-	CUDA_LYJ_API void test2(); // project, abort
-	CUDA_LYJ_API void test3(); // texture2d
+	CUDA_LYJ_API void testTexture(); // texture2d
 
 	typedef void *ProHandle;
 	CUDA_LYJ_API ProHandle initProjector(
@@ -25,8 +23,8 @@ namespace CUDA_LYJ
 		float *camParams, const int w, const int h);
 	CUDA_LYJ_API void project(ProHandle handle,
 							  float *Tcw,
-							  float minD, float maxD,
-							  float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds);
+							  float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds,
+							  float minD = 0, float maxD = FLT_MAX, float csTh = 0, float detDTh = 1);
 	CUDA_LYJ_API void release(ProHandle handle);
 }
 

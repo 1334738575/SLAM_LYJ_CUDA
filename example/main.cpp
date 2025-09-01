@@ -2,8 +2,6 @@
 
 int main(int argc, char *argv[])
 {
-    // CUDA_LYJ::test1();
-    CUDA_LYJ::test2();
-    // CUDA_LYJ::test3();
+    CUDA_LYJ::testTexture();
     return 0;
 }

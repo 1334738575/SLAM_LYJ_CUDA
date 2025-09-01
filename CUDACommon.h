@@ -142,11 +142,10 @@ namespace CUDA_LYJ
 		int h_ = 0;
 	};
 
-	class BaseCU
 	{
 	public:
-		BaseCU() {};
-		~BaseCU() {};
+		BaseCU(){};
+		~BaseCU(){};
 
 		__device__ void add2(const float2 &p1, const float2 &p2, float2 &p3)
 		{
