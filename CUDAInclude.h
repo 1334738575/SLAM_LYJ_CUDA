@@ -1,6 +1,8 @@
 #ifndef CUDA_INCLUDE_H
 #define CUDA_INCLUDE_H
 
+#include <float.h>
+
 // export
 #ifdef WIN32
 #ifdef _MSC_VER
