@@ -322,7 +322,7 @@ namespace CUDA_LYJ
 		if (idx >= _vn)
 			return;
 		int u, v;
-		double ddd;
+		float ddd;
 		for (int ind = idx; ind < idx + _step; ++ind)
 		{
 			if (ind >= _vn)
@@ -387,7 +387,7 @@ namespace CUDA_LYJ
 		unsigned int idx = (threadIdx.x + blockDim.x * blockIdx.x) * _step;
 		if (idx >= _fn)
 			return;
-		int u, v;
+		//int u, v;
 		for (int ind = idx; ind < idx + _step; ++ind)
 		{
 			if (ind >= _fn)
