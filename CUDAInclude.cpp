@@ -4,6 +4,7 @@
 #include <fstream>
 #include <random>
 #include "CUDAInclude.h"
+#include "CUDATexture.h"
 
 namespace CUDA_LYJ
 {
@@ -35,16 +36,26 @@ namespace CUDA_LYJ
         cudaTextureDesc texDesc;
         // 初始化资源描述符
         memset(&resDesc, 0, sizeof(resDesc));
+        /*内存本质：Linear绑定普通线性全局内存，Array绑定专为 2D/3D 优化的 CUDA 数组，后者无法直接指针访问；
+        性能与功能：Array支持 2D/3D 线性插值，纹理访问效率更高；Linear仅支持 1D 插值，但灵活性更好（可指针访问）；
+        场景选择：2D/3D 图像处理优先用Array，一维数据或需混合访问优先用Linear。*/
         resDesc.resType = cudaResourceTypeArray;
         // 初始化纹理描述符
         memset(&texDesc, 0, sizeof(texDesc));
+        /*cudaAddressModeClamp：超出边界时取边界值（默认）；
+        cudaAddressModeWrap：循环重复（仅对归一化坐标有效）；
+        cudaAddressModeMirror：镜像重复（仅对归一化坐标有效）；
+        cudaAddressModeBorder：超出边界返回 0。*/
         texDesc.addressMode[0] = cudaAddressModeClamp;
         texDesc.addressMode[1] = cudaAddressModeClamp;
         if (false)
         {
+            /*cudaFilterModePoint：最近邻插值（默认）；
+            cudaFilterModeLinear：仅支持浮点型数据（float/double）+ 归一化坐标（normalizedCoords=1）；
+            2D/3D 线性插值仅对cudaResourceTypeArray生效。*/
             texDesc.filterMode = cudaFilterModeLinear; // 归一化
-            texDesc.readMode = cudaReadModeNormalizedFloat;
-            texDesc.normalizedCoords = true;
+            texDesc.readMode = cudaReadModeNormalizedFloat;//数据归一化
+            texDesc.normalizedCoords = true;//坐标归一化
         }
         else
         {

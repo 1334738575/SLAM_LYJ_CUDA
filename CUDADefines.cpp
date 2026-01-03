@@ -5,6 +5,7 @@ namespace CUDA_LYJ
 {
 
 	ProjectorCache::ProjectorCache(unsigned int _PSize, unsigned int _fSize, int _w, int _h)
+	:PSize_(_PSize), fSize_(_fSize), w_(_w), h_(_h)
 	{
 		init(PSize_, fSize_, w_, h_);
 	}

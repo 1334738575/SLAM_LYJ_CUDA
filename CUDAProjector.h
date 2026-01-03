@@ -10,7 +10,6 @@
 
 namespace CUDA_LYJ
 {
-	void testTextureCUDA(float *_output, int _w, int _h, cudaTextureObject_t _texObj);
 
 	class ProjectorCU
 	{

@@ -15,6 +15,7 @@ add_link_options(/DEBUG) #生成调试信息（测试在visual studio中有效�
 
 set(${PROJECT_NAME}_LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/Output)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/install)
+option(TEST_TEXTURE "test texture" OFF)
 
 #################################package##################################
 enable_language(CUDA)
@@ -22,6 +23,22 @@ find_package(CUDA)
 # message(FATAL_ERROR ${CUDA_FOUND})
 include_directories(${CUDA_INCLUDE_DIRS})
 set(CMAKE_CUDA_ARCHITECTURES 89)
+if(TEST_TEXTURE)
+    set(${PROJECT_NAME}_INCLUDE_DIRS)
+    set(${PROJECT_NAME}_LIBRARIES)
+    set(${PROJECT_NAME}_BINARY_DIRS)
+    set(OpenCV_DIR "D:/SLAM_LYJ/dependencies/Opencv/lib")
+    find_package(OpenCV)
+    if(NOT OpenCV_FOUND)
+        message(FATAL_ERROR "OpenCV not found.")
+    endif()
+    list(APPEND ${PROJECT_NAME}_INCLUDE_DIRS ${OpenCV_INCLUDE_DIRS})
+    list(APPEND ${PROJECT_NAME}_LIBRARIES ${OpenCV_LIBS})
+    list(APPEND ${PROJECT_NAME}_BINARY_DIRS "${OpenCV_INSTALL_PATH}/bin;")
+    set(Eigen3_DIR "D:/SLAM_LYJ/dependencies/Eigen/share/eigen3/cmake")
+    find_package(Eigen3)
+    list(APPEND ${PROJECT_NAME}_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIRS})
+endif()
 
 #################################library##################################
 file(GLOB ALL_SRC *.h *.cu *.cpp)
@@ -44,7 +61,14 @@ endif()
 #################################test##################################
 add_executable(${PROJECT_NAME}Bin example/main.cpp)
 target_include_directories(${PROJECT_NAME}Bin PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME}Bin ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME}Bin PRIVATE ${PROJECT_NAME})
+if(TEST_TEXTURE)
+    target_include_directories(${PROJECT_NAME}Bin PRIVATE ${${PROJECT_NAME}_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME}Bin PRIVATE ${${PROJECT_NAME}_LIBRARIES})
+    if(MSVC)
+        set_target_properties(${PROJECT_NAME}Bin PROPERTIES VS_DEBUGGER_ENVIRONMENT "PATH=${${PROJECT_NAME}_BINARY_DIRS}")
+    endif()
+endif()
 
 #################################install##################################
 
