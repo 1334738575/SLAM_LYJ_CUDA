@@ -364,7 +364,8 @@ namespace CUDA_LYJ
 		{
 			if (ind >= _fn)
 				return;
-			if (_isVisible[ind] == 0)
+			uint3 &face = _faces[ind];
+			if (_isVisible[ind] == 0 && _isPVisible[face.x] == 0 && _isPVisible[face.y] == 0 && _isPVisible[face.z] == 0)
 				continue;
 			// u = (int)_ctr2ds[ind].x;
 			// v = (int)_ctr2ds[ind].y;
@@ -378,7 +379,6 @@ namespace CUDA_LYJ
 			// 	continue;
 			// if (z > (zPre + 1))
 			// 	continue;
-			uint3 &face = _faces[ind];
 			if (_isPVisible[face.x] == 1 || _isPVisible[face.y] == 1 || _isPVisible[face.z] == 1)
 				_isVisible[ind] = 1;
 			else
