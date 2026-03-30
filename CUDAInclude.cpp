@@ -1,10 +1,10 @@
 #include <iostream>
-#include "CUDAProjector.h"
-#include <vector>
 #include <fstream>
 #include <random>
+#include "CUDAProjector.h"
 #include "CUDAInclude.h"
 #include "CUDATexture.h"
+#include "CUDAORBMatcher.h"
 
 namespace CUDA_LYJ
 {
@@ -122,6 +122,63 @@ namespace CUDA_LYJ
         ProjectorCU *pro = (ProjectorCU *)handle;
         pro->release();
         delete pro;
+        return;
+    }
+
+
+    CUDA_LYJ_API MatchHanlde initMatcher(int _w, int _h, float* _cam)
+    {
+        ORBMatcherCU* matcher = new ORBMatcherCU(_w, _h, _cam);
+        return (void*)matcher;
+    }
+    static void getMatchResult(ORBMatcherCache& cache, short* matched2to1, short* matched1to2)
+    {
+        cudaMemcpy(matched2to1, cache.match2to1Dev_, CUDAORBKPSIZE * sizeof(short), cudaMemcpyDeviceToHost);
+        int kpSz1 = cache.kpSz1_;
+        int kpSz2 = cache.kpSz2_;
+        for (int i = 0; i < kpSz2; ++i)
+        {
+            matched1to2[i] = -1;
+        }
+        for (int i = 0; i < kpSz1; ++i)
+        {
+            if (matched2to1[i] == -1)
+                continue;
+            if (matched1to2[matched2to1[i]] != -1)
+                continue;
+            matched1to2[matched2to1[i]] = i;
+        }
+    }
+    CUDA_LYJ_API void matchBF(MatchHanlde handle, ORBMatcherCache& cache, 
+        short* matched2to1, short* matched1to2, int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D)
+    {
+        ORBMatcherCU* matcher = (ORBMatcherCU*)handle;
+        matcher->matchBF(cache, _distThDesc, _nnTh, _bCheckOri, _bUse3D, _squareDistTh3D);
+        cudaDeviceSynchronize();
+        getMatchResult(cache, matched2to1, matched1to2);
+        return;
+    }
+    CUDA_LYJ_API void matchF(MatchHanlde handle, ORBMatcherCache& cache, short* matched2to1, short* matched1to2, int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D)
+    {
+        ORBMatcherCU* matcher = (ORBMatcherCU*)handle;
+        matcher->matchF(cache, _distThDesc, _nnTh, _bCheckOri, _bUse3D, _squareDistTh3D);
+        cudaDeviceSynchronize();
+        getMatchResult(cache, matched2to1, matched1to2);
+        return;
+    }
+    CUDA_LYJ_API void matchPro(MatchHanlde handle, ORBMatcherCache& cache, short* matched2to1, short* matched1to2, int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D)
+    {
+        ORBMatcherCU* matcher = (ORBMatcherCU*)handle;
+        matcher->matchPro(cache, _distThDesc, _nnTh, _bCheckOri, _bUse3D, _squareDistTh3D);
+        cudaDeviceSynchronize();
+        getMatchResult(cache, matched2to1, matched1to2);
+        return;
+    }
+    CUDA_LYJ_API void releaseMatcher(MatchHanlde handle)
+    {
+        ORBMatcherCU* matcher = (ORBMatcherCU*)handle;
+        delete matcher;
+        handle = nullptr;
         return;
     }
 }

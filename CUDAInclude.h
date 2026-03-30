@@ -1,7 +1,6 @@
 #ifndef CUDA_INCLUDE_H
 #define CUDA_INCLUDE_H
 
-#include <float.h>
 #include "CUDADefines.h"
 
 
@@ -34,6 +33,21 @@ namespace CUDA_LYJ
 		float minD = 0, float maxD = FLT_MAX, float csTh = 0, float detDTh = 1);
 	CUDA_LYJ_API void release(ProHandle handle);
 
+
+	typedef void* MatchHanlde;
+	CUDA_LYJ_API MatchHanlde initMatcher(
+		int _w, int _h, float* _cam
+	);
+	CUDA_LYJ_API void matchBF(MatchHanlde handle, ORBMatcherCache& cache,
+		short* matched2to1, short* matched1to2,
+		int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D);
+	CUDA_LYJ_API void matchF(MatchHanlde handle, ORBMatcherCache& cache,
+		short* matched2to1, short* matched1to2,
+		int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D);
+	CUDA_LYJ_API void matchPro(MatchHanlde handle, ORBMatcherCache& cache,
+		short* matched2to1, short* matched1to2,
+		int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D);
+	CUDA_LYJ_API void releaseMatcher(MatchHanlde handle);
 }
 
 #endif // !CUDA_INCLUDE_H

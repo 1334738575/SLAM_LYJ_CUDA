@@ -2,10 +2,6 @@
 #define CUDA_LYJPROJECTOR_H
 
 #include "CUDACommon.h"
-#include <vector>
-#include <cuda_runtime_api.h>
-#include <cuda_runtime.h>
-#include <cuda.h>
 #include "CUDADefines.h"
 
 namespace CUDA_LYJ

@@ -1,9 +1,8 @@
 #ifndef CUDA_TEXTURE_H
 #define CUDA_TEXTURE_H
 
-#include <cuda_runtime_api.h>
-#include <cuda_runtime.h>
-#include <cuda.h>
+#include "CUDACommon.h"
+#include "CUDADefines.h"
 
 namespace CUDA_LYJ
 {
