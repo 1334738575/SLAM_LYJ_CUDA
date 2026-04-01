@@ -63,7 +63,7 @@ namespace CUDA_LYJ
 		void init(unsigned int _PSize, unsigned int _fSize, int _w, int _h);
 	};
 
-	class ORBMatcherCache
+	class CUDA_LYJ_API ORBMatcherCache
 	{
 	public:
 		ORBMatcherCache();
