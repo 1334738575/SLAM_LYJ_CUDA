@@ -6,6 +6,7 @@
 
 namespace CUDA_LYJ
 {
+	CUDA_LYJ_API void test();
 	CUDA_LYJ_API void testTexture(); // texture2d
 
 	typedef void *ProHandle;

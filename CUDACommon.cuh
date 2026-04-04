@@ -7,12 +7,31 @@
 #include <vector>
 #include <float.h>
 
+
+// export
+#ifdef WIN32
+#ifdef _MSC_VER
+#define CUDA_LYJ_API __declspec(dllexport)
+#else
+#define CUDA_LYJ_API
+#endif
+#else
+#define CUDA_LYJ_API
+#endif
+
+#define CUDAORBMAXW 2000
+#define CUDAORBMAXH 2000
+#define CUDAORBKPSIZE 8192
+#define CUDAORBGRIDSOLU 20
+#define CUDAORBEVECELLSIZE 128
+
 namespace CUDA_LYJ
 {
-	/// <summary>
+	extern __device__ float dot3(const float3& p1, const float3& p2);
+		/// <summary>
 	/// colmajor
 	/// </summary>
-	class Mat34CU
+	class CUDA_LYJ_API Mat34CU
 	{
 	public:
 		Mat34CU()
@@ -52,22 +71,22 @@ namespace CUDA_LYJ
 		//	ret.z = dataDev_[2] * _p.x + dataDev_[5] * _p.y + dataDev_[8] * _p.z + dataDev_[11];
 		//	return ret;
 		//}
-		//__device__ float3 transform(const float3 &_p) const
-		//{
-		//	float3 ret;
-		//	ret.x = dataDev_[0] * _p.x + dataDev_[3] * _p.y + dataDev_[6] * _p.z + dataDev_[9];
-		//	ret.y = dataDev_[1] * _p.x + dataDev_[4] * _p.y + dataDev_[7] * _p.z + dataDev_[10];
-		//	ret.z = dataDev_[2] * _p.x + dataDev_[5] * _p.y + dataDev_[8] * _p.z + dataDev_[11];
-		//	return ret;
-		//}
-		//__device__ float3 transformNormal(const float3 &_n) const
-		//{
-		//	float3 ret;
-		//	ret.x = dataDev_[0] * _n.x + dataDev_[3] * _n.y + dataDev_[6] * _n.z;
-		//	ret.y = dataDev_[1] * _n.x + dataDev_[4] * _n.y + dataDev_[7] * _n.z;
-		//	ret.z = dataDev_[2] * _n.x + dataDev_[5] * _n.y + dataDev_[8] * _n.z;
-		//	return ret;
-		//}
+		__device__ float3 transform(const float3 &_p) const
+		{
+			float3 ret;
+			ret.x = dataDev_[0] * _p.x + dataDev_[3] * _p.y + dataDev_[6] * _p.z + dataDev_[9];
+			ret.y = dataDev_[1] * _p.x + dataDev_[4] * _p.y + dataDev_[7] * _p.z + dataDev_[10];
+			ret.z = dataDev_[2] * _p.x + dataDev_[5] * _p.y + dataDev_[8] * _p.z + dataDev_[11];
+			return ret;
+		}
+		__device__ float3 transformNormal(const float3 &_n) const
+		{
+			float3 ret;
+			ret.x = dataDev_[0] * _n.x + dataDev_[3] * _n.y + dataDev_[6] * _n.z;
+			ret.y = dataDev_[1] * _n.x + dataDev_[4] * _n.y + dataDev_[7] * _n.z;
+			ret.z = dataDev_[2] * _n.x + dataDev_[5] * _n.y + dataDev_[8] * _n.z;
+			return ret;
+		}
 
 		// private:
 		float *dataDev_ = nullptr;
@@ -76,7 +95,7 @@ namespace CUDA_LYJ
 	/// <summary>
 	/// fx, fy, cx, cy
 	/// </summary>
-	class CameraCU
+	class CUDA_LYJ_API CameraCU
 	{
 	public:
 		CameraCU()
@@ -158,6 +177,60 @@ namespace CUDA_LYJ
 	};
 
 
+	class CUDA_LYJ_API GridCU
+	{
+	public:
+		GridCU() {
+			gridW_ = (CUDAORBMAXW + CUDAORBGRIDSOLU - 1) / CUDAORBGRIDSOLU;
+			gridH_ = (CUDAORBMAXH + CUDAORBGRIDSOLU - 1) / CUDAORBGRIDSOLU;
+			cudaMalloc((void**)&cellDatasDev_, CUDAORBKPSIZE * sizeof(short));
+			cudaMalloc((void**)&cellSzsDev_, (gridW_ * gridH_ + 1) * sizeof(short));
+		};
+		~GridCU() {
+			cudaFree(cellDatasDev_);
+			cudaFree(cellSzsDev_);
+		};
+
+		__host__ void upload(short* _cellDatas, short* _cellSzs, cudaStream_t _stream=nullptr)
+		{
+			cudaMemcpyAsync(cellDatasDev_, _cellDatas, CUDAORBKPSIZE * sizeof(short), cudaMemcpyHostToDevice, _stream);
+			cudaMemcpyAsync(cellSzsDev_, _cellSzs, (gridW_ * gridH_ + 1) * sizeof(short), cudaMemcpyHostToDevice, _stream);
+		}
+
+		__device__ int getIndGrid(const float& _u, const float& _v, int& _cGrid, int& _rGrid)
+		{
+			_cGrid = int(_u) / CUDAORBGRIDSOLU;
+			_rGrid = int(_v) / CUDAORBGRIDSOLU;
+			if (_cGrid < 0 || _rGrid < 0 || _cGrid >= gridW_ || _rGrid >= gridH_)
+				return 0;
+			return 1;
+		}
+		__device__ void getKpIndInCell(const int& _cGrid, const int& _rGrid, short* _kpIndSt, int& _kpIndSz)
+		{
+			_kpIndSt = nullptr;
+			_kpIndSz = 0;
+			if (_cGrid < 0 || _rGrid < 0 || _cGrid >= gridW_ || _rGrid >= gridH_)
+				return;
+			int ind = _rGrid * gridW_ + _cGrid;
+			_kpIndSz = int(cellSzsDev_[ind + 1] - cellSzsDev_[ind]);
+			int st = int(cellSzsDev_[ind]);
+			_kpIndSt = cellDatasDev_ + st;
+		}
+		__device__ int isIndInGrid(const int& _cGrid, const int& _rGrid)
+		{
+			if (_cGrid < 0 || _rGrid < 0 || _cGrid >= gridW_ || _rGrid >= gridH_)
+				return 0;
+			return 1;
+		}
+
+
+	//private:
+		short* cellDatasDev_;
+		short* cellSzsDev_;
+		int gridW_;
+		int gridH_;
+
+	};
 
 }
 

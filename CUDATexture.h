@@ -1,7 +1,7 @@
 #ifndef CUDA_TEXTURE_H
 #define CUDA_TEXTURE_H
 
-#include "CUDACommon.h"
+#include "CUDACommon.cuh"
 #include "CUDADefines.h"
 
 namespace CUDA_LYJ
@@ -14,6 +14,8 @@ namespace CUDA_LYJ
 	public:
 		TextureCU();
 		~TextureCU();
+
+		void justTest();
 
 	private:
 

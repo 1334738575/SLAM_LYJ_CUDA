@@ -2,29 +2,13 @@
 #define CUDA_LYJ_DEFINES_H
 
 
-#include "CUDACommon.h"
+#include "CUDACommon.cuh"
 
 
-// export
-#ifdef WIN32
-#ifdef _MSC_VER
-#define CUDA_LYJ_API __declspec(dllexport)
-#else
-#define CUDA_LYJ_API
-#endif
-#else
-#define CUDA_LYJ_API
-#endif
-
-#define CUDAORBMAXW 2000
-#define CUDAORBMAXH 2000
-#define CUDAORBKPSIZE 8192
-#define CUDAORBGRIDSOLU 20
-#define CUDAORBEVECELLSIZE 128
 
 namespace CUDA_LYJ
 {
-	union DepthID2
+	union CUDA_LYJ_API DepthID2
 	{
 		struct
 		{
@@ -71,8 +55,8 @@ namespace CUDA_LYJ
 
 		int wGrid_ = 0;
 		int hGrid_ = 0;
-		int kpSz1_ = 0;//×î´ó8192
-		int kpSz2_ = 0;//×î´ó8192
+		int kpSz1_ = 0;//æœ€å¤§8192
+		int kpSz2_ = 0;//æœ€å¤§8192
 		//int distThDesc = 50;
 		//float nnTh = 0.6;
 		//char bCheckOri = 1;
@@ -83,8 +67,8 @@ namespace CUDA_LYJ
 		Mat34CU Twc1Dev_;
 		Mat34CU Tcw2Dev_;
 		Mat34CU Twc2Dev_;
-		short* featureGrid2Dev_;//¹Ì¶¨w_/20 * h_/20 * 128; 16Î»¹»ÓÃ
-		char* eveFeatureGrid2SzDev_;//Ã¿¸ö¸÷×ÔµÄÌØÕ÷Êı
+		short* featureGrid2Dev_;//å›ºå®šw_/20 * h_/20 * 128; 16ä½å¤Ÿç”¨
+		char* eveFeatureGrid2SzDev_;//æ¯ä¸ªå„è‡ªçš„ç‰¹å¾æ•°
 		float2* kps1Dev_;
 		float2* kps2Dev_;
 		unsigned int* descs1Dev_;
@@ -101,7 +85,6 @@ namespace CUDA_LYJ
 		void upload1(int _kpSz, float* _Tcw, float* _Twc, float* _kps, unsigned int* _descs, float* _Pcs, float* _Pws, char* _bPws);
 		void upload2(int _kpSz, float* _Tcw, float* _Twc, short* _featureGrid, char* eveFeatureGrid, float* _kps, unsigned int* _descs, float* _Pcs);
 	};
-
 }
 
 

@@ -31,4 +31,9 @@ namespace CUDA_LYJ
 		dim3 grid((_w + block.x - 1) / block.x, (_h + block.y - 1) / block.y);
 		testTextureCU << <grid, block >> > (_output, _w, _h, _texObj);
 	}
+	
+	void TextureCU::justTest()
+	{
+
+	}
 }

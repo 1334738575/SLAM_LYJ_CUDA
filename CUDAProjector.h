@@ -1,7 +1,7 @@
 #ifndef CUDA_LYJPROJECTOR_H
 #define CUDA_LYJPROJECTOR_H
 
-#include "CUDACommon.h"
+#include "CUDACommon.cuh"
 #include "CUDADefines.h"
 
 namespace CUDA_LYJ

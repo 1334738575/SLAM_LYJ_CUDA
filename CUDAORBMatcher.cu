@@ -437,7 +437,8 @@ namespace CUDA_LYJ
 		if (_bPws1[idx] == 0)
 			return;
 		float3* Pw = _Pws1 + idx;
-		int cGrid, int rGrid;
+		int cGrid;
+		int rGrid;
 		if (getIndInGrid(_Tcw2, _wGrid2, _hGrid2, _gridResul, _featureGrid2, eveFeatureGrid2Sz, Pw[0], _cam, cGrid, rGrid) == 0)
 			return;
 
@@ -526,6 +527,133 @@ namespace CUDA_LYJ
 			);
 	}
 
+	__device__ int getIndInGridCom(float* _Tcw,
+		GridCU& _gridCom,
+		float3& _Pw,
+		float* _cam,
+		int& _cGrid, int& _rGrid
+	)
+	{
+		float3 Pc;
+		transformTmp(_Tcw, _Pw, Pc);
+		float u, v;
+		pointToImageTmp(_cam, _Pw, u, v);
+		return _gridCom.getIndGrid(u, v, _cGrid, _rGrid);
+	}
+	__global__ void matchProCUCom(int _kp1Sz, int _kp2Sz,
+		float* _Twc1, float* _Twc2,
+		float* _Tcw1, float* _Tcw2,
+		GridCU& _gridCom,
+		unsigned int* _descs1, unsigned int* _descs2,
+		float3* _Pcs1, float3* _Pcs2,
+		float3* _Pws1,
+		char* _bPws1,
+		float* _cam,
+		int _distThDesc, float _nnTh, char _bUse3D, float _squareDistTh3D,
+		short* _match2to1)
+	{
+		unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
+		if (idx >= _kp1Sz)
+			return;
+		_match2to1[idx] = -1;
 
+		float3* p1 = _Pcs1 + idx;
+		if (_bUse3D == 1)
+		{
+			if (p1[0].z <= 0)
+				return;
+		}
 
+		if (_bPws1[idx] == 0)
+			return;
+		float3* Pw = _Pws1 + idx;
+		int cGrid;
+		int rGrid;
+		if (getIndInGridCom(_Tcw2, _gridCom, Pw[0], _cam, cGrid, rGrid) == 0)
+			return;
+
+		unsigned int* desc1 = _descs1 + 8 * idx;
+		int bestId = -1;
+		int bestDescDist = 255;
+		int nextBestId = -1;
+		int nextBestDescDist = 255;
+		int descDistTmp = 0;
+		float squareDistTmp = 0;
+		float3 Pw1;
+		transformTmp(_Twc1, p1[0], Pw1);
+		float3 Pw2;
+		short* kpIndSt;
+		int kpIndSz;
+		for (int i = rGrid - 1; i <= rGrid + 1; ++i)
+		{
+			for (int j = cGrid - 1; j <= cGrid + 1; ++j)
+			{
+				if (_gridCom.isIndInGrid(j, i) == 0)
+					continue;
+				_gridCom.getKpIndInCell(j, i, kpIndSt, kpIndSz);
+				if (kpIndSz <= 0)
+					continue;
+				for (int k = 0; k < kpIndSz; ++k)
+				{
+					int kpInd = int(kpIndSt[k]);
+					if (_bUse3D == 1)
+					{
+						float3* p2 = _Pcs2 + kpInd;
+						if (p2[0].z <= 0)
+							continue;
+						transformTmp(_Twc2, p2[0], Pw2);
+						squareDistTmp = Point3DSquareDistance(Pw1, Pw2);
+						if (squareDistTmp > _squareDistTh3D)
+							continue;
+					}
+					unsigned int* desc2 = _descs2 + 8 * kpInd;
+					descDistTmp = DescriptorDistance(desc1, desc2);
+					if (descDistTmp > _distThDesc)
+						continue;
+					if (descDistTmp < bestDescDist)
+					{
+						nextBestDescDist = bestDescDist;
+						nextBestId = bestId;
+						bestDescDist = descDistTmp;
+						bestId = kpInd;
+					}
+					else if (descDistTmp < nextBestDescDist)
+					{
+						nextBestDescDist = descDistTmp;
+						nextBestId = kpInd;
+					}
+				}
+			}
+		}
+		if (bestDescDist > nextBestDescDist * _nnTh)
+			return;
+		_match2to1[idx] = bestId;
+	}
+	void ORBMatcherCU::matchProCUDACom(int _kp1Sz, int _kp2Sz,
+		Mat34CU& _Twc1, Mat34CU& _Twc2,
+		Mat34CU& _Tcw1, Mat34CU& _Tcw2,
+		GridCU& _gridCom,
+		unsigned int* _descs1, unsigned int* _descs2,
+		float3* _Pcs1, float3* _Pcs2,
+		float3* _Pws1, char* _bPws1,
+		CameraCU& _cam,
+		int _distThDesc, float _nnTh, char _bUse3D, float _squareDistTh3D,
+		short* _match2to1)
+	{
+		int threadNum = 1024;
+		int gridSz = (CUDAORBKPSIZE + threadNum - 1) / threadNum;
+		dim3 block(threadNum, 1);
+		dim3 grid(gridSz, 1);
+		matchProCUCom << <grid, block >> > (_kp1Sz, _kp2Sz,
+			_Twc1.dataDev_, _Twc2.dataDev_,
+			_Tcw1.dataDev_, _Tcw2.dataDev_,
+			_gridCom,
+			_descs1, _descs2,
+			_Pcs1, _Pcs2,
+			_Pws1, _bPws1,
+			_cam.paramsDev_,
+			_distThDesc, _nnTh, _bUse3D, _squareDistTh3D,
+			_match2to1
+			);
+	}
 }

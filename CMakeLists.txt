@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(CUDA_LYJ)
+#支持函数共享
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -rdc=true")
 # set(CMAKE_CUDA_ARCHITECTURES 89)
 # set(CMAKE_CUDA_COMPILER "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.2/bin/nvcc.exe")
 # project(TEST_LYJ LANGUAGES CXX CUDA)
@@ -48,6 +50,11 @@ $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(${PROJECT_NAME} ${CUDA_LIBRARIES})
+#支持函数共享
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON  # 开启 rdc
+    CUDA_RESOLVE_DEVICE_SYMBOLS ON # 关键：自动做设备链接
+)
 
 # ################################output##################################
 if(DEFINED ${PROJECT_NAME}_LIBRARY_OUTPUT_PATH)

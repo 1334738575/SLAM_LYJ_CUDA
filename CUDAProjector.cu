@@ -1,13 +1,10 @@
 #include "CUDAProjector.h"
-#include "CUDACommon.h"
+#include "CUDACommon.cuh"
 #include <cstdio>
 
 namespace CUDA_LYJ
 {
-	__device__ float dot3(const float3 &p1, const float3 &p2)
-	{
-		return p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
-	}
+
 	__device__ float crossProduct2(const float2 &p1, const float2 &p2)
 	{
 		return p1.x * p2.y - p1.y * p2.x;

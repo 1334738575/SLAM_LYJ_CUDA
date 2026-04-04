@@ -5,9 +5,16 @@
 #include "CUDAInclude.h"
 #include "CUDATexture.h"
 #include "CUDAORBMatcher.h"
+#include "CUDACommon.cuh"
 
 namespace CUDA_LYJ
 {
+    CUDA_LYJ_API void test()
+    {
+        TextureCU ttt;
+        ttt.justTest();
+        return;
+    }
     CUDA_LYJ_API void testTexture()
     {
         // base
@@ -166,10 +173,10 @@ namespace CUDA_LYJ
         getMatchResult(cache, matched2to1, matched1to2);
         return;
     }
-    CUDA_LYJ_API void matchPro(MatchHanlde handle, ORBMatcherCache& cache, short* matched2to1, short* matched1to2, int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D)
+    CUDA_LYJ_API void matchPro(MatchHanlde handle, ORBMatcherCache& cache, GridCU& _gridCom, short* matched2to1, short* matched1to2, int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D)
     {
         ORBMatcherCU* matcher = (ORBMatcherCU*)handle;
-        matcher->matchPro(cache, _distThDesc, _nnTh, _bCheckOri, _bUse3D, _squareDistTh3D);
+        matcher->matchPro(cache, _gridCom, _distThDesc, _nnTh, _bCheckOri, _bUse3D, _squareDistTh3D);
         cudaDeviceSynchronize();
         getMatchResult(cache, matched2to1, matched1to2);
         return;
