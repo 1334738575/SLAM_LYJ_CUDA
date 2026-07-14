@@ -2,6 +2,7 @@
 #define CUDA_INCLUDE_H
 
 #include "CUDADefines.h"
+#include <stdint.h>
 
 
 namespace CUDA_LYJ
@@ -31,7 +32,8 @@ namespace CUDA_LYJ
 	CUDA_LYJ_API void project(ProHandle handle, ProjectorCache& cache,
 		float* Tcw,
 		float* depths, unsigned int* fIds, char* allVisiblePIds, char* allVisibleFIds,
-		float minD = 0, float maxD = FLT_MAX, float csTh = 0, float detDTh = 1);
+		float minD = 0, float maxD = FLT_MAX, float csTh = 0, float detDTh = 1,
+		std::vector<uint32_t>* faceIds = nullptr);
 	CUDA_LYJ_API void release(ProHandle handle);
 
 

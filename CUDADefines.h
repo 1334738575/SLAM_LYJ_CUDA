@@ -32,9 +32,6 @@ namespace CUDA_LYJ
 		int h_ = 0;
 
 		Mat34CU TDev_;
-		float3* PcsDev_;
-		float3* ctrcsDev_;
-		float3* fNormalcsDev_;
 		float3* pixelsDev_;
 		float3* ctrPixelsDev_;
 

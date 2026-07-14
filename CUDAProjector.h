@@ -3,6 +3,7 @@
 
 #include "CUDACommon.cuh"
 #include "CUDADefines.h"
+#include <stdint.h>
 
 namespace CUDA_LYJ
 {
@@ -23,7 +24,8 @@ namespace CUDA_LYJ
 			h_ = h;
 			dIdsReset_.assign(w * h, UINT64_MAX);
 			std::vector<DepthID2> dIds(w * h);
-			for (int i = 0; i < w * h; ++i) {
+			for (int i = 0; i < w * h; ++i)
+			{
 				dIds[i].depth = FLT_MAX;
 				dIds[i].fid = UINT_MAX;
 			}
@@ -46,46 +48,33 @@ namespace CUDA_LYJ
 			camDev_.upload(w, h, camParams, camInv.data());
 		}
 
-		//void project(float *Tcw,
-		//			 float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds,
-		//			 float minD = 0, float maxD = FLT_MAX, float csTh = 0, float detDTh = 1)
-		//{
-		//	TDev_.upload(Tcw);
-		//	cudaMemcpy(dIdsDev_, dIdsReset_.data(), w_ * h_ * sizeof(unsigned long long), cudaMemcpyHostToDevice);
-
-		//	testTransformCUDA(TDev_, PwsDev_, PcsDev_, PSize_);
-		//	testTransformCUDA(TDev_, ctrwsDev_, ctrcsDev_, fSize_);
-		//	testTransformNormalCUDA(TDev_, fNormalwsDev_, fNormalcsDev_, fSize_);
-		//	testCameraCUDA(PcsDev_, pixelsDev_, PSize_, w_, h_, camDev_);
-		//	testCameraCUDA(ctrcsDev_, ctrPixelsDev_, fSize_, w_, h_, camDev_);
-		//	testDepthAndFidAndCheckCUDA(PcsDev_, pixelsDev_, facesDev_, fNormalcsDev_, PSize_, fSize_, w_, h_, ctrPixelsDev_, minD, maxD, csTh, detDTh, depthDev_, dIdsDev_, isPVisibleDev_, isFVisibleDev_, camDev_);
-		//	cudaDeviceSynchronize();
-
-		//	cudaMemcpy(depths, depthDev_, w_ * h_ * sizeof(float), cudaMemcpyDeviceToHost);
-		//	cudaMemcpy(dIds_.data(), dIdsDev_, w_ * h_ * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
-		//	cudaMemcpy(allVisiblePIds, isPVisibleDev_, PSize_ * sizeof(char), cudaMemcpyDeviceToHost);
-		//	cudaMemcpy(allVisibleFIds, isFVisibleDev_, fSize_ * sizeof(char), cudaMemcpyDeviceToHost);
-		//	for (int i = 0; i < w_ * h_; ++i)
-		//	{
-		//		fIds[i] = dIds_[i].fid;
-		//	}
-		//}
-
-		void project(ProjectorCache& cache,
-			float* Tcw,
-			float* depths, unsigned int* fIds, char* allVisiblePIds, char* allVisibleFIds,
-			float minD = 0, float maxD = FLT_MAX, float csTh = 0, float detDTh = 1)
+		void project(ProjectorCache &cache,
+					 float *Tcw,
+					 float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds,
+					 float minD = 0, float maxD = FLT_MAX, float csTh = 0, float detDTh = 1,
+					 std::vector<uint32_t> *faceIds = nullptr)
 		{
 			cache.TDev_.upload(Tcw);
 			cudaMemcpy(cache.dIdsDev_, dIdsReset_.data(), w_ * h_ * sizeof(unsigned long long), cudaMemcpyHostToDevice);
 
-			testTransformCUDA(cache.TDev_, PwsDev_, cache.PcsDev_, PSize_);
-			testTransformCUDA(cache.TDev_, ctrwsDev_, cache.ctrcsDev_, fSize_);
-			testTransformNormalCUDA(cache.TDev_, fNormalwsDev_, cache.fNormalcsDev_, fSize_);
-			testCameraCUDA(cache.PcsDev_, cache.pixelsDev_, PSize_, w_, h_, camDev_);
-			testCameraCUDA(cache.ctrcsDev_, cache.ctrPixelsDev_, fSize_, w_, h_, camDev_);
-			testDepthAndFidAndCheckCUDA(cache.PcsDev_, cache.pixelsDev_, facesDev_, cache.fNormalcsDev_, PSize_, fSize_, w_, h_, cache.ctrPixelsDev_, minD, maxD, csTh, detDTh, cache.depthDev_, cache.dIdsDev_, cache.isPVisibleDev_, cache.isFVisibleDev_, camDev_);
+			unsigned int *faceIdsDev = nullptr;
+			unsigned int projectFSize = fSize_;
+			if (faceIds != nullptr)
+			{
+				projectFSize = static_cast<unsigned int>(faceIds->size());
+				if (projectFSize > 0)
+				{
+					cudaMalloc((void **)&faceIdsDev, projectFSize * sizeof(unsigned int));
+					cudaMemcpy(faceIdsDev, faceIds->data(), projectFSize * sizeof(unsigned int), cudaMemcpyHostToDevice);
+				}
+			}
+
+			testTransformAndCameraCUDA(cache.TDev_, PwsDev_, cache.pixelsDev_, PSize_, camDev_);
+			testTransformAndCameraCUDA(cache.TDev_, ctrwsDev_, cache.ctrPixelsDev_, fSize_, camDev_);
+			testDepthAndFidAndCheckCUDA(cache.TDev_, cache.pixelsDev_, facesDev_, fNormalwsDev_, PSize_, fSize_, w_, h_, cache.ctrPixelsDev_, minD, maxD, csTh, detDTh, cache.depthDev_, cache.dIdsDev_, cache.isPVisibleDev_, cache.isFVisibleDev_, camDev_, faceIdsDev, projectFSize, faceIds != nullptr);
 			cudaDeviceSynchronize();
+			if (faceIdsDev != nullptr)
+				cudaFree(faceIdsDev);
 
 			cudaMemcpy(depths, cache.depthDev_, w_ * h_ * sizeof(float), cudaMemcpyDeviceToHost);
 			cudaMemcpy(cache.dIds_.data(), cache.dIdsDev_, w_ * h_ * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
@@ -107,14 +96,14 @@ namespace CUDA_LYJ
 
 		void testTransformCUDA(const Mat34CU &_T, float3 *_ps, float3 *_rets, unsigned int _vn);
 
-		void testTransformNormalCUDA(const Mat34CU &_T, float3 *_normals, float3 *_rets, unsigned int _n);
+		void testTransformAndCameraCUDA(const Mat34CU &_T, float3 *_pws, float3 *_p2ds, unsigned int _vn, const CameraCU &_cam);
 
 		void testCameraCUDA(float3 *_p3ds, float3 *_p2ds, unsigned int _vn, int _w, int _h, const CameraCU &_cam);
 
-		void testDepthAndFidAndCheckCUDA(float3 *_p3ds, float3 *_p2ds, uint3 *_faces, float3 *_fNormals,
+		void testDepthAndFidAndCheckCUDA(const Mat34CU &_T, float3 *_p2ds, uint3 *_faces, float3 *_fNormals,
 										 unsigned int _vn, unsigned int _fn, int _w, int _h, float3 *_ctr2ds, float _minD, float _maxD, float _csTh, float _detDTh,
 										 float *_depths, unsigned long long *_dIds, char *_isPVisible, char *_isFVisible,
-										 const CameraCU &_cam);
+										 const CameraCU &_cam, unsigned int *_faceIds = nullptr, unsigned int _projectFn = 0, bool _useFaceIds = false);
 
 		unsigned int PSize_ = 0;
 		unsigned int fSize_ = 0;
@@ -126,7 +115,6 @@ namespace CUDA_LYJ
 		float3 *ctrwsDev_;
 		uint3 *facesDev_;
 		float3 *fNormalwsDev_;
-
 	};
 
 }

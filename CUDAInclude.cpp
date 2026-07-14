@@ -119,10 +119,11 @@ namespace CUDA_LYJ
     CUDA_LYJ_API void project(ProHandle handle, ProjectorCache& cache,
                               float *Tcw,
                               float *depths, unsigned int *fIds, char *allVisiblePIds, char *allVisibleFIds,
-                              float minD, float maxD, float csTh, float detDTh)
+                              float minD, float maxD, float csTh, float detDTh,
+                              std::vector<uint32_t>* faceIds)
     {
         ProjectorCU *pro = (ProjectorCU *)handle;
-        pro->project(cache, Tcw, depths, fIds, allVisiblePIds, allVisibleFIds, minD, maxD, csTh, detDTh);
+        pro->project(cache, Tcw, depths, fIds, allVisiblePIds, allVisibleFIds, minD, maxD, csTh, detDTh, faceIds);
     }
     CUDA_LYJ_API void release(ProHandle handle)
     {

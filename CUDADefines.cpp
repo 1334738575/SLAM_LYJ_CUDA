@@ -11,9 +11,6 @@ namespace CUDA_LYJ
 	}
 	ProjectorCache::~ProjectorCache()
 	{
-		cudaFree(PcsDev_);
-		cudaFree(ctrcsDev_);
-		cudaFree(fNormalcsDev_);
 		cudaFree(pixelsDev_);
 		cudaFree(ctrPixelsDev_);
 		cudaFree(depthDev_);
@@ -34,9 +31,6 @@ namespace CUDA_LYJ
 			did.depth = FLT_MAX;
 			did.fid = UINT_MAX;
 		}
-		cudaMalloc((void**)&PcsDev_, PSize_ * 3 * sizeof(float));
-		cudaMalloc((void**)&ctrcsDev_, fSize_ * 3 * sizeof(float));
-		cudaMalloc((void**)&fNormalcsDev_, fSize_ * 3 * sizeof(float));
 		cudaMalloc((void**)&pixelsDev_, PSize_ * 3 * sizeof(float));
 		cudaMalloc((void**)&ctrPixelsDev_, fSize_ * 3 * sizeof(float));
 		cudaMalloc((void**)&depthDev_, w_ * h_ * sizeof(float));
