@@ -33,7 +33,7 @@ namespace CUDA_LYJ
 		float* Tcw,
 		float* depths, unsigned int* fIds, char* allVisiblePIds, char* allVisibleFIds,
 		float minD = 0, float maxD = FLT_MAX, float csTh = 0, float detDTh = 1,
-		std::vector<uint32_t>* faceIds = nullptr);
+		std::vector<uint32_t>* faceIds = nullptr, std::vector<uint32_t>* pointIds = nullptr);
 	CUDA_LYJ_API void release(ProHandle handle);
 
 
