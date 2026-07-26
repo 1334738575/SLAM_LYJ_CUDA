@@ -57,6 +57,7 @@ namespace CUDA_LYJ
 		cudaFree(bPws1Dev_);
 
 		cudaFree(match2to1Dev_);
+		cudaFree(reverseMatchDev_);
 	}
 	void ORBMatcherCache::init()
 	{
@@ -75,28 +76,36 @@ namespace CUDA_LYJ
 		cudaMalloc((void**)&bPws1Dev_, CUDAORBKPSIZE * sizeof(char));
 
 		cudaMalloc((void**)&match2to1Dev_, CUDAORBKPSIZE * sizeof(short));
+		cudaMalloc((void**)&reverseMatchDev_, CUDAORBKPSIZE * sizeof(short));
 	}
 	void ORBMatcherCache::upload1(int _kpSz, float* _Tcw, float* _Twc, float* _kps, unsigned int* _descs, float* _Pcs, float* _Pws, char* _bPws)
 	{
-		kpSz1_ = _kpSz;
+		kpSz1_ = _kpSz < 0 ? 0 : (_kpSz > CUDAORBKPSIZE ? CUDAORBKPSIZE : _kpSz);
 		Tcw1Dev_.upload(_Tcw);
 		Twc1Dev_.upload(_Twc);
 		cudaMemcpy(kps1Dev_, _kps, kpSz1_ * 2 * sizeof(float), cudaMemcpyHostToDevice);
-		cudaMemcpy(descs1Dev_, _kps, kpSz1_ * 8 * sizeof(unsigned int), cudaMemcpyHostToDevice);
-		cudaMemcpy(Pcs1Dev_, _kps, kpSz1_ * sizeof(float3), cudaMemcpyHostToDevice);
-		cudaMemcpy(Pws1Dev_, _kps, kpSz1_ * sizeof(float3), cudaMemcpyHostToDevice);
-		cudaMemcpy(bPws1Dev_, _kps, kpSz1_ * sizeof(char), cudaMemcpyHostToDevice);
+		cudaMemcpy(descs1Dev_, _descs, kpSz1_ * 8 * sizeof(unsigned int), cudaMemcpyHostToDevice);
+		hasPcs1_ = _Pcs != nullptr;
+		hasPws1_ = _Pws != nullptr && _bPws != nullptr;
+		if (_Pcs != nullptr)
+			cudaMemcpy(Pcs1Dev_, _Pcs, kpSz1_ * sizeof(float3), cudaMemcpyHostToDevice);
+		if (_Pws != nullptr)
+			cudaMemcpy(Pws1Dev_, _Pws, kpSz1_ * sizeof(float3), cudaMemcpyHostToDevice);
+		if (_bPws != nullptr)
+			cudaMemcpy(bPws1Dev_, _bPws, kpSz1_ * sizeof(char), cudaMemcpyHostToDevice);
 	}
 	void ORBMatcherCache::upload2(int _kpSz, float* _Tcw, float* _Twc, short* _featureGrid, char* eveFeatureGrid, float* _kps, unsigned int* _descs, float* _Pcs)
 	{
-		kpSz2_ = _kpSz;
+		kpSz2_ = _kpSz < 0 ? 0 : (_kpSz > CUDAORBKPSIZE ? CUDAORBKPSIZE : _kpSz);
 		Tcw2Dev_.upload(_Tcw);
 		Twc2Dev_.upload(_Twc);
 		cudaMemcpy(featureGrid2Dev_, _featureGrid, wGrid_ * hGrid_ * CUDAORBEVECELLSIZE * sizeof(short), cudaMemcpyHostToDevice);
 		cudaMemcpy(eveFeatureGrid2SzDev_, eveFeatureGrid, wGrid_ * hGrid_ * sizeof(char), cudaMemcpyHostToDevice);
 		cudaMemcpy(kps2Dev_, _kps, kpSz2_ * 2 * sizeof(float), cudaMemcpyHostToDevice);
-		cudaMemcpy(descs2Dev_, _kps, kpSz2_ * 8 * sizeof(unsigned int), cudaMemcpyHostToDevice);
-		cudaMemcpy(Pcs2Dev_, _kps, kpSz2_ * sizeof(float3), cudaMemcpyHostToDevice);
+		cudaMemcpy(descs2Dev_, _descs, kpSz2_ * 8 * sizeof(unsigned int), cudaMemcpyHostToDevice);
+		hasPcs2_ = _Pcs != nullptr;
+		if (_Pcs != nullptr)
+			cudaMemcpy(Pcs2Dev_, _Pcs, kpSz2_ * sizeof(float3), cudaMemcpyHostToDevice);
 	}
 
 }

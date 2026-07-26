@@ -74,13 +74,18 @@ namespace CUDA_LYJ
 		float3* Pcs2Dev_;
 		float3* Pws1Dev_;
 		char* bPws1Dev_;
+		bool hasPcs1_ = false;
+		bool hasPcs2_ = false;
+		bool hasPws1_ = false;
 
 
 		short* match2to1Dev_;
+		short* reverseMatchDev_;
 
 		void init();
-		void upload1(int _kpSz, float* _Tcw, float* _Twc, float* _kps, unsigned int* _descs, float* _Pcs, float* _Pws, char* _bPws);
-		void upload2(int _kpSz, float* _Tcw, float* _Twc, short* _featureGrid, char* eveFeatureGrid, float* _kps, unsigned int* _descs, float* _Pcs);
+		// 3D inputs may be null when only descriptor matching is required.
+		void upload1(int _kpSz, float* _Tcw, float* _Twc, float* _kps, unsigned int* _descs, float* _Pcs = nullptr, float* _Pws = nullptr, char* _bPws = nullptr);
+		void upload2(int _kpSz, float* _Tcw, float* _Twc, short* _featureGrid, char* eveFeatureGrid, float* _kps, unsigned int* _descs, float* _Pcs = nullptr);
 	};
 }
 

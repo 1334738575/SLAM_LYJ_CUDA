@@ -141,9 +141,9 @@ namespace CUDA_LYJ
     }
     static void getMatchResult(ORBMatcherCache& cache, short* matched2to1, short* matched1to2)
     {
-        cudaMemcpy(matched2to1, cache.match2to1Dev_, CUDAORBKPSIZE * sizeof(short), cudaMemcpyDeviceToHost);
         int kpSz1 = cache.kpSz1_;
         int kpSz2 = cache.kpSz2_;
+        cudaMemcpy(matched2to1, cache.match2to1Dev_, kpSz1 * sizeof(short), cudaMemcpyDeviceToHost);
         for (int i = 0; i < kpSz2; ++i)
         {
             matched1to2[i] = -1;

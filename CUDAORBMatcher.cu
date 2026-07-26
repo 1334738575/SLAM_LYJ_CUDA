@@ -51,19 +51,18 @@ namespace CUDA_LYJ
 
 		unsigned int* desc1 = _descs1 + 8 * idx;
 		int bestId = -1;
-		int bestDescDist = 255;
-		int nextBestId = -1;
-		int nextBestDescDist = 255;
+		int bestDescDist = 257;
+		int nextBestDescDist = 257;
 		int descDistTmp = 0;
 		float squareDistTmp = 0;
-		float3* p1 = _Pcs1 + idx;
+		float3 Pw1;
 		if (_bUse3D == 1)
 		{
+			float3* p1 = _Pcs1 + idx;
 			if (p1[0].z <= 0)
 				return;
+			transformTmp(_Twc1, p1[0], Pw1);
 		}
-		float3 Pw1;
-		transformTmp(_Twc1, p1[0], Pw1);
 		float3 Pw2;
 		for (int i = 0; i < _kp2Sz; ++i)
 		{
@@ -79,38 +78,59 @@ namespace CUDA_LYJ
 			}
 			unsigned int* desc2 = _descs2 + 8 * i;
 			descDistTmp = DescriptorDistance(desc1, desc2);
-			if (descDistTmp > _distThDesc)
-				continue;
 			if (descDistTmp < bestDescDist)
 			{
 				nextBestDescDist = bestDescDist;
-				nextBestId = bestId;
 				bestDescDist = descDistTmp;
 				bestId = i;
 			}
 			else if (descDistTmp < nextBestDescDist)
 			{
 				nextBestDescDist = descDistTmp;
-				nextBestId = i;
 			}
 		}
-		if (bestDescDist > nextBestDescDist * _nnTh)
+		if (bestId < 0 || bestDescDist > _distThDesc || nextBestDescDist > 256 ||
+			bestDescDist >= nextBestDescDist * _nnTh)
 			return;
-		_match2to1[idx] = bestId;
+		_match2to1[idx] = static_cast<short>(bestId);
 	}
+
+	__global__ void keepMutualMatchesCU(int _kp1Sz, int _kp2Sz,
+		short* _match2to1, const short* _reverseMatch)
+	{
+		unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
+		if (idx >= _kp1Sz)
+			return;
+
+		int match = static_cast<int>(_match2to1[idx]);
+		if (match < 0 || match >= _kp2Sz || static_cast<int>(_reverseMatch[match]) != idx)
+			_match2to1[idx] = -1;
+	}
+
 	void ORBMatcherCU::matchBFCUDA(int _kp1Sz, int _kp2Sz, 
 		Mat34CU& _Twc1, Mat34CU& _Twc2, 
 		unsigned int* _descs1, unsigned int* _descs2, 
 		float3* _Pcs1, float3* _Pcs2, 
 		int _distThDesc, float _nnTh, char _bUse3D, float _squareDistTh3D, 
-		short* _match2to1)
+		short* _match2to1, short* _reverseMatch)
 	{
-		int threadNum = 1024;
-		int gridSz = (CUDAORBKPSIZE + threadNum - 1) / threadNum;
+		if (_kp1Sz > 0)
+			cudaMemset(_match2to1, 0xff, _kp1Sz * sizeof(short));
+		if (_kp2Sz > 0)
+			cudaMemset(_reverseMatch, 0xff, _kp2Sz * sizeof(short));
+		if (_kp1Sz < 2 || _kp2Sz < 2 || _distThDesc < 0 || _distThDesc > 256 ||
+			_nnTh != _nnTh || _nnTh <= 0.0f || _nnTh >= 1.0f)
+			return;
+
+		constexpr int threadNum = 256;
 		dim3 block(threadNum, 1);
-		dim3 grid(gridSz, 1);
-		matchBFCU << <grid, block >> > (_kp1Sz, _kp2Sz, _Twc1.dataDev_, _Twc2.dataDev_, _descs1, _descs2, _Pcs1, _Pcs2,
+		dim3 forwardGrid((_kp1Sz + threadNum - 1) / threadNum, 1);
+		dim3 reverseGrid((_kp2Sz + threadNum - 1) / threadNum, 1);
+		matchBFCU << <forwardGrid, block >> > (_kp1Sz, _kp2Sz, _Twc1.dataDev_, _Twc2.dataDev_, _descs1, _descs2, _Pcs1, _Pcs2,
 			_distThDesc, _nnTh, _bUse3D, _squareDistTh3D, _match2to1);
+		matchBFCU << <reverseGrid, block >> > (_kp2Sz, _kp1Sz, _Twc2.dataDev_, _Twc1.dataDev_, _descs2, _descs1, _Pcs2, _Pcs1,
+			_distThDesc, _nnTh, _bUse3D, _squareDistTh3D, _reverseMatch);
+		keepMutualMatchesCU << <forwardGrid, block >> > (_kp1Sz, _kp2Sz, _match2to1, _reverseMatch);
 	}
 
 
