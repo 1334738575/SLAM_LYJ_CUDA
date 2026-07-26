@@ -39,11 +39,11 @@ namespace CUDA_LYJ
 
 	typedef void* MatchHanlde;
 	CUDA_LYJ_API MatchHanlde initMatcher(
-		int _w, int _h, float* _cam
+		int _w = 0, int _h = 0, float* _cam = nullptr
 	);
 	CUDA_LYJ_API void matchBF(MatchHanlde handle, ORBMatcherCache& cache,
 		short* matched2to1, short* matched1to2,
-		int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D);
+		int _distThDesc = 64, float _nnTh = 0.8f, char _bCheckOri = 0, char _bUse3D = 0, float _squareDistTh3D = 0.0f);
 	CUDA_LYJ_API void matchF(MatchHanlde handle, ORBMatcherCache& cache,
 		short* matched2to1, short* matched1to2,
 		int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D);

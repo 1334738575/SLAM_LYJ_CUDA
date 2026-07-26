@@ -18,6 +18,7 @@ add_link_options(/DEBUG) #生成调试信息（测试在visual studio中有效�
 set(${PROJECT_NAME}_LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/Output)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/install)
 option(TEST_TEXTURE "test texture" OFF)
+option(TEST_ORB_MATCHER "test descriptor-only CUDA ORB matching" OFF)
 
 #################################package##################################
 enable_language(CUDA)
@@ -75,6 +76,13 @@ if(TEST_TEXTURE)
     if(MSVC)
         set_target_properties(${PROJECT_NAME}Bin PROPERTIES VS_DEBUGGER_ENVIRONMENT "PATH=${${PROJECT_NAME}_BINARY_DIRS}")
     endif()
+endif()
+
+if(TEST_ORB_MATCHER)
+    enable_testing()
+    add_executable(CUDAORBMatcherSmoke example/ORBMatcherSmoke.cpp)
+    target_link_libraries(CUDAORBMatcherSmoke PRIVATE ${PROJECT_NAME})
+    add_test(NAME CUDAORBMatcherSmoke COMMAND CUDAORBMatcherSmoke)
 endif()
 
 #################################install##################################

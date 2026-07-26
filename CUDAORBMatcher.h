@@ -12,6 +12,7 @@ namespace CUDA_LYJ
 	class ORBMatcherCU
 	{
 	public:
+		ORBMatcherCU() = default;
 		ORBMatcherCU(int _w, int _h, float* _cam) 
 		{
 			init(_w, _h, _cam);
@@ -27,7 +28,8 @@ namespace CUDA_LYJ
 
 		void matchBF(ORBMatcherCache& _cache, int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D)
 		{
-			if (_bUse3D == 1 && (!_cache.hasPcs1_ || !_cache.hasPcs2_))
+			if (!_cache.hasDescs1_ || !_cache.hasDescs2_ ||
+				(_bUse3D == 1 && (!_cache.hasPcs1_ || !_cache.hasPcs2_)))
 			{
 				cudaMemset(_cache.match2to1Dev_, 0xff, _cache.kpSz1_ * sizeof(short));
 				cudaMemset(_cache.reverseMatchDev_, 0xff, _cache.kpSz2_ * sizeof(short));

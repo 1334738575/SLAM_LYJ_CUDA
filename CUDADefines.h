@@ -77,6 +77,8 @@ namespace CUDA_LYJ
 		bool hasPcs1_ = false;
 		bool hasPcs2_ = false;
 		bool hasPws1_ = false;
+		bool hasDescs1_ = false;
+		bool hasDescs2_ = false;
 
 
 		short* match2to1Dev_;
@@ -86,6 +88,8 @@ namespace CUDA_LYJ
 		// 3D inputs may be null when only descriptor matching is required.
 		void upload1(int _kpSz, float* _Tcw, float* _Twc, float* _kps, unsigned int* _descs, float* _Pcs = nullptr, float* _Pws = nullptr, char* _bPws = nullptr);
 		void upload2(int _kpSz, float* _Tcw, float* _Twc, short* _featureGrid, char* eveFeatureGrid, float* _kps, unsigned int* _descs, float* _Pcs = nullptr);
+		void upload1(int _kpSz, const unsigned int* _descs);
+		void upload2(int _kpSz, const unsigned int* _descs);
 	};
 }
 

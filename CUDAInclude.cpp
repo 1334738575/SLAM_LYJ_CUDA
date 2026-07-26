@@ -136,7 +136,11 @@ namespace CUDA_LYJ
 
     CUDA_LYJ_API MatchHanlde initMatcher(int _w, int _h, float* _cam)
     {
-        ORBMatcherCU* matcher = new ORBMatcherCU(_w, _h, _cam);
+        ORBMatcherCU* matcher = nullptr;
+        if (_cam == nullptr)
+            matcher = new ORBMatcherCU();
+        else
+            matcher = new ORBMatcherCU(_w, _h, _cam);
         return (void*)matcher;
     }
     static void getMatchResult(ORBMatcherCache& cache, short* matched2to1, short* matched1to2)

@@ -80,11 +80,16 @@ namespace CUDA_LYJ
 	}
 	void ORBMatcherCache::upload1(int _kpSz, float* _Tcw, float* _Twc, float* _kps, unsigned int* _descs, float* _Pcs, float* _Pws, char* _bPws)
 	{
-		kpSz1_ = _kpSz < 0 ? 0 : (_kpSz > CUDAORBKPSIZE ? CUDAORBKPSIZE : _kpSz);
-		Tcw1Dev_.upload(_Tcw);
-		Twc1Dev_.upload(_Twc);
-		cudaMemcpy(kps1Dev_, _kps, kpSz1_ * 2 * sizeof(float), cudaMemcpyHostToDevice);
-		cudaMemcpy(descs1Dev_, _descs, kpSz1_ * 8 * sizeof(unsigned int), cudaMemcpyHostToDevice);
+		hasDescs1_ = _descs != nullptr;
+		kpSz1_ = hasDescs1_ ? (_kpSz < 0 ? 0 : (_kpSz > CUDAORBKPSIZE ? CUDAORBKPSIZE : _kpSz)) : 0;
+		if (_Tcw != nullptr)
+			Tcw1Dev_.upload(_Tcw);
+		if (_Twc != nullptr)
+			Twc1Dev_.upload(_Twc);
+		if (_kps != nullptr)
+			cudaMemcpy(kps1Dev_, _kps, kpSz1_ * 2 * sizeof(float), cudaMemcpyHostToDevice);
+		if (hasDescs1_)
+			cudaMemcpy(descs1Dev_, _descs, kpSz1_ * 8 * sizeof(unsigned int), cudaMemcpyHostToDevice);
 		hasPcs1_ = _Pcs != nullptr;
 		hasPws1_ = _Pws != nullptr && _bPws != nullptr;
 		if (_Pcs != nullptr)
@@ -96,16 +101,40 @@ namespace CUDA_LYJ
 	}
 	void ORBMatcherCache::upload2(int _kpSz, float* _Tcw, float* _Twc, short* _featureGrid, char* eveFeatureGrid, float* _kps, unsigned int* _descs, float* _Pcs)
 	{
-		kpSz2_ = _kpSz < 0 ? 0 : (_kpSz > CUDAORBKPSIZE ? CUDAORBKPSIZE : _kpSz);
-		Tcw2Dev_.upload(_Tcw);
-		Twc2Dev_.upload(_Twc);
-		cudaMemcpy(featureGrid2Dev_, _featureGrid, wGrid_ * hGrid_ * CUDAORBEVECELLSIZE * sizeof(short), cudaMemcpyHostToDevice);
-		cudaMemcpy(eveFeatureGrid2SzDev_, eveFeatureGrid, wGrid_ * hGrid_ * sizeof(char), cudaMemcpyHostToDevice);
-		cudaMemcpy(kps2Dev_, _kps, kpSz2_ * 2 * sizeof(float), cudaMemcpyHostToDevice);
-		cudaMemcpy(descs2Dev_, _descs, kpSz2_ * 8 * sizeof(unsigned int), cudaMemcpyHostToDevice);
+		hasDescs2_ = _descs != nullptr;
+		kpSz2_ = hasDescs2_ ? (_kpSz < 0 ? 0 : (_kpSz > CUDAORBKPSIZE ? CUDAORBKPSIZE : _kpSz)) : 0;
+		if (_Tcw != nullptr)
+			Tcw2Dev_.upload(_Tcw);
+		if (_Twc != nullptr)
+			Twc2Dev_.upload(_Twc);
+		if (_featureGrid != nullptr)
+			cudaMemcpy(featureGrid2Dev_, _featureGrid, wGrid_ * hGrid_ * CUDAORBEVECELLSIZE * sizeof(short), cudaMemcpyHostToDevice);
+		if (eveFeatureGrid != nullptr)
+			cudaMemcpy(eveFeatureGrid2SzDev_, eveFeatureGrid, wGrid_ * hGrid_ * sizeof(char), cudaMemcpyHostToDevice);
+		if (_kps != nullptr)
+			cudaMemcpy(kps2Dev_, _kps, kpSz2_ * 2 * sizeof(float), cudaMemcpyHostToDevice);
+		if (hasDescs2_)
+			cudaMemcpy(descs2Dev_, _descs, kpSz2_ * 8 * sizeof(unsigned int), cudaMemcpyHostToDevice);
 		hasPcs2_ = _Pcs != nullptr;
 		if (_Pcs != nullptr)
 			cudaMemcpy(Pcs2Dev_, _Pcs, kpSz2_ * sizeof(float3), cudaMemcpyHostToDevice);
+	}
+	void ORBMatcherCache::upload1(int _kpSz, const unsigned int* _descs)
+	{
+		hasDescs1_ = _descs != nullptr;
+		hasPcs1_ = false;
+		hasPws1_ = false;
+		kpSz1_ = hasDescs1_ ? (_kpSz < 0 ? 0 : (_kpSz > CUDAORBKPSIZE ? CUDAORBKPSIZE : _kpSz)) : 0;
+		if (hasDescs1_)
+			cudaMemcpy(descs1Dev_, _descs, kpSz1_ * 8 * sizeof(unsigned int), cudaMemcpyHostToDevice);
+	}
+	void ORBMatcherCache::upload2(int _kpSz, const unsigned int* _descs)
+	{
+		hasDescs2_ = _descs != nullptr;
+		hasPcs2_ = false;
+		kpSz2_ = hasDescs2_ ? (_kpSz < 0 ? 0 : (_kpSz > CUDAORBKPSIZE ? CUDAORBKPSIZE : _kpSz)) : 0;
+		if (hasDescs2_)
+			cudaMemcpy(descs2Dev_, _descs, kpSz2_ * 8 * sizeof(unsigned int), cudaMemcpyHostToDevice);
 	}
 
 }
