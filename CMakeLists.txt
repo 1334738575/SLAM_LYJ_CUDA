@@ -96,7 +96,7 @@ install(TARGETS ${PROJECT_NAME}
     INCLUDES DESTINATION include
 )
 
-install(FILES CUDAInclude.h CUDADefines.h CUDACommon.h
+install(FILES CUDAInclude.h CUDADefines.h CUDACommon.cuh
 DESTINATION include
 PERMISSIONS OWNER_READ GROUP_READ WORLD_READ)
 
