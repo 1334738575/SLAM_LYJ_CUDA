@@ -48,9 +48,19 @@ namespace CUDA_LYJ
 		short* matched2to1, short* matched1to2,
 		int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D);
 	CUDA_LYJ_API void matchPro(MatchHanlde handle, ORBMatcherCache& cache,
+		GridCU& _gridCom,
 		short* matched2to1, short* matched1to2,
 		int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D);
 	CUDA_LYJ_API void releaseMatcher(MatchHanlde handle);
+
+	typedef void* SIFTMatchHandle;
+	CUDA_LYJ_API SIFTMatchHandle initSIFTMatcher();
+	// distMax is acos(cosine similarity), in radians; defaults match SiftGPU.
+	CUDA_LYJ_API void matchBF(SIFTMatchHandle handle, SIFTMatcherCache& cache,
+		short* matched2to1, short* matched1to2,
+		float _distMax = 0.7f, float _ratioMax = 0.8f, char _mutualBestMatch = 1,
+		char _bUse3D = 0, float _squareDistTh3D = 0.0f);
+	CUDA_LYJ_API void releaseSIFTMatcher(SIFTMatchHandle handle);
 }
 
 #endif // !CUDA_INCLUDE_H

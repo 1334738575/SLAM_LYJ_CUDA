@@ -19,6 +19,7 @@ set(${PROJECT_NAME}_LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/Output)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/install)
 option(TEST_TEXTURE "test texture" OFF)
 option(TEST_ORB_MATCHER "test descriptor-only CUDA ORB matching" OFF)
+option(TEST_SIFT_MATCHER "test descriptor-only CUDA SIFT matching" OFF)
 
 #################################package##################################
 enable_language(CUDA)
@@ -85,6 +86,13 @@ if(TEST_ORB_MATCHER)
     add_test(NAME CUDAORBMatcherSmoke COMMAND CUDAORBMatcherSmoke)
 endif()
 
+if(TEST_SIFT_MATCHER)
+    enable_testing()
+    add_executable(CUDASIFTMatcherSmoke example/SIFTMatcherSmoke.cpp)
+    target_link_libraries(CUDASIFTMatcherSmoke PRIVATE ${PROJECT_NAME})
+    add_test(NAME CUDASIFTMatcherSmoke COMMAND CUDASIFTMatcherSmoke)
+endif()
+
 #################################install##################################
 
 # 安装库和头文件
@@ -96,7 +104,7 @@ install(TARGETS ${PROJECT_NAME}
     INCLUDES DESTINATION include
 )
 
-install(FILES CUDAInclude.h CUDADefines.h CUDACommon.h
+install(FILES CUDAInclude.h CUDADefines.h CUDACommon.cuh
 DESTINATION include
 PERMISSIONS OWNER_READ GROUP_READ WORLD_READ)
 

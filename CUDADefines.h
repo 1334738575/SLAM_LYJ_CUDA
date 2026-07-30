@@ -91,6 +91,37 @@ namespace CUDA_LYJ
 		void upload1(int _kpSz, const unsigned int* _descs);
 		void upload2(int _kpSz, const unsigned int* _descs);
 	};
+
+	class CUDA_LYJ_API SIFTMatcherCache
+	{
+	public:
+		SIFTMatcherCache();
+		~SIFTMatcherCache();
+
+		int kpSz1_ = 0;
+		int kpSz2_ = 0;
+		Mat34CU Twc1Dev_;
+		Mat34CU Twc2Dev_;
+		float* descs1Dev_ = nullptr;
+		float* descs2Dev_ = nullptr;
+		float3* Pcs1Dev_ = nullptr;
+		float3* Pcs2Dev_ = nullptr;
+		short* match2to1Dev_ = nullptr;
+		short* reverseMatchDev_ = nullptr;
+		bool hasDescs1_ = false;
+		bool hasDescs2_ = false;
+		bool hasPcs1_ = false;
+		bool hasPcs2_ = false;
+
+		void init();
+		// SiftGPU angular distance requires L2-normalized descriptors.
+		void upload1(int _kpSz, float* _Twc, const float* _descs, const float* _Pcs = nullptr,
+			bool _normalizeDescriptors = true);
+		void upload2(int _kpSz, float* _Twc, const float* _descs, const float* _Pcs = nullptr,
+			bool _normalizeDescriptors = true);
+		void upload1(int _kpSz, const float* _descs, bool _normalizeDescriptors = true);
+		void upload2(int _kpSz, const float* _descs, bool _normalizeDescriptors = true);
+	};
 }
 
 
