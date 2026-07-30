@@ -1,8 +1,38 @@
 #include "CUDADefines.h"
 
+#include <cmath>
+
 
 namespace CUDA_LYJ
 {
+	namespace
+	{
+		void uploadSIFTDescriptors(float* deviceDescriptors, int descriptorCount, const float* descriptors,
+			bool normalizeDescriptors)
+		{
+			if (descriptorCount <= 0)
+				return;
+			if (!normalizeDescriptors)
+			{
+				cudaMemcpy(deviceDescriptors, descriptors,
+					static_cast<size_t>(descriptorCount) * CUDASIFTDESCSIZE * sizeof(float), cudaMemcpyHostToDevice);
+				return;
+			}
+			std::vector<float> normalized(static_cast<size_t>(descriptorCount) * CUDASIFTDESCSIZE);
+			for (int descriptorIndex = 0; descriptorIndex < descriptorCount; ++descriptorIndex)
+			{
+				const float* source = descriptors + descriptorIndex * CUDASIFTDESCSIZE;
+				float* destination = normalized.data() + descriptorIndex * CUDASIFTDESCSIZE;
+				float squareNorm = 0.0f;
+				for (int i = 0; i < CUDASIFTDESCSIZE; ++i)
+					squareNorm += source[i] * source[i];
+				const float scale = squareNorm > 0.0f ? 1.0f / std::sqrt(squareNorm) : 0.0f;
+				for (int i = 0; i < CUDASIFTDESCSIZE; ++i)
+					destination[i] = source[i] * scale;
+			}
+			cudaMemcpy(deviceDescriptors, normalized.data(), normalized.size() * sizeof(float), cudaMemcpyHostToDevice);
+		}
+	}
 
 	ProjectorCache::ProjectorCache(unsigned int _PSize, unsigned int _fSize, int _w, int _h)
 	:PSize_(_PSize), fSize_(_fSize), w_(_w), h_(_h)
@@ -135,6 +165,69 @@ namespace CUDA_LYJ
 		kpSz2_ = hasDescs2_ ? (_kpSz < 0 ? 0 : (_kpSz > CUDAORBKPSIZE ? CUDAORBKPSIZE : _kpSz)) : 0;
 		if (hasDescs2_)
 			cudaMemcpy(descs2Dev_, _descs, kpSz2_ * 8 * sizeof(unsigned int), cudaMemcpyHostToDevice);
+	}
+
+	SIFTMatcherCache::SIFTMatcherCache()
+	{
+		init();
+	}
+
+	SIFTMatcherCache::~SIFTMatcherCache()
+	{
+		cudaFree(descs1Dev_);
+		cudaFree(descs2Dev_);
+		cudaFree(Pcs1Dev_);
+		cudaFree(Pcs2Dev_);
+		cudaFree(match2to1Dev_);
+		cudaFree(reverseMatchDev_);
+	}
+
+	void SIFTMatcherCache::init()
+	{
+		cudaMalloc((void**)&descs1Dev_, CUDASIFTKPSIZE * CUDASIFTDESCSIZE * sizeof(float));
+		cudaMalloc((void**)&descs2Dev_, CUDASIFTKPSIZE * CUDASIFTDESCSIZE * sizeof(float));
+		cudaMalloc((void**)&Pcs1Dev_, CUDASIFTKPSIZE * sizeof(float3));
+		cudaMalloc((void**)&Pcs2Dev_, CUDASIFTKPSIZE * sizeof(float3));
+		cudaMalloc((void**)&match2to1Dev_, CUDASIFTKPSIZE * sizeof(short));
+		cudaMalloc((void**)&reverseMatchDev_, CUDASIFTKPSIZE * sizeof(short));
+	}
+
+	void SIFTMatcherCache::upload1(int _kpSz, float* _Twc, const float* _descs, const float* _Pcs,
+		bool _normalizeDescriptors)
+	{
+		hasDescs1_ = _descs != nullptr;
+		hasPcs1_ = _Pcs != nullptr;
+		kpSz1_ = hasDescs1_ ? (_kpSz < 0 ? 0 : (_kpSz > CUDASIFTKPSIZE ? CUDASIFTKPSIZE : _kpSz)) : 0;
+		if (_Twc != nullptr)
+			Twc1Dev_.upload(_Twc);
+		if (hasDescs1_)
+			uploadSIFTDescriptors(descs1Dev_, kpSz1_, _descs, _normalizeDescriptors);
+		if (hasPcs1_)
+			cudaMemcpy(Pcs1Dev_, _Pcs, kpSz1_ * sizeof(float3), cudaMemcpyHostToDevice);
+	}
+
+	void SIFTMatcherCache::upload2(int _kpSz, float* _Twc, const float* _descs, const float* _Pcs,
+		bool _normalizeDescriptors)
+	{
+		hasDescs2_ = _descs != nullptr;
+		hasPcs2_ = _Pcs != nullptr;
+		kpSz2_ = hasDescs2_ ? (_kpSz < 0 ? 0 : (_kpSz > CUDASIFTKPSIZE ? CUDASIFTKPSIZE : _kpSz)) : 0;
+		if (_Twc != nullptr)
+			Twc2Dev_.upload(_Twc);
+		if (hasDescs2_)
+			uploadSIFTDescriptors(descs2Dev_, kpSz2_, _descs, _normalizeDescriptors);
+		if (hasPcs2_)
+			cudaMemcpy(Pcs2Dev_, _Pcs, kpSz2_ * sizeof(float3), cudaMemcpyHostToDevice);
+	}
+
+	void SIFTMatcherCache::upload1(int _kpSz, const float* _descs, bool _normalizeDescriptors)
+	{
+		upload1(_kpSz, nullptr, _descs, nullptr, _normalizeDescriptors);
+	}
+
+	void SIFTMatcherCache::upload2(int _kpSz, const float* _descs, bool _normalizeDescriptors)
+	{
+		upload2(_kpSz, nullptr, _descs, nullptr, _normalizeDescriptors);
 	}
 
 }
