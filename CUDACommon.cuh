@@ -6,6 +6,7 @@
 #include <cuda.h>
 #include <vector>
 #include <float.h>
+#include <cmath>
 
 
 // export
@@ -29,6 +30,78 @@
 
 namespace CUDA_LYJ
 {
+	__device__ inline void projectCameraPoint(const float* camera, unsigned int cameraModel,
+		const float3& point, float& u, float& v)
+	{
+		const float x = point.x / point.z;
+		const float y = point.y / point.z;
+		if (cameraModel == 1u)
+		{
+			const float r = sqrtf(x * x + y * y);
+			if (r < 1e-12f)
+			{
+				u = camera[2];
+				v = camera[3];
+				return;
+			}
+			const float theta = atanf(r);
+			const float theta2 = theta * theta;
+			const float theta4 = theta2 * theta2;
+			const float theta6 = theta4 * theta2;
+			const float theta8 = theta4 * theta4;
+			const float thetaD = theta * (1.0f + camera[4] * theta2 + camera[5] * theta4 +
+				camera[6] * theta6 + camera[7] * theta8);
+			const float scale = thetaD / r;
+			u = camera[0] * x * scale + camera[2];
+			v = camera[1] * y * scale + camera[3];
+			return;
+		}
+		u = camera[0] * x + camera[2];
+		v = camera[1] * y + camera[3];
+	}
+
+	__device__ inline void unprojectCameraPixel(const float* camera, unsigned int cameraModel,
+		float u, float v, float3& ray)
+	{
+		const float xDistorted = (u - camera[2]) / camera[0];
+		const float yDistorted = (v - camera[3]) / camera[1];
+		if (cameraModel == 1u)
+		{
+			const float thetaD = sqrtf(xDistorted * xDistorted + yDistorted * yDistorted);
+			if (thetaD < 1e-12f)
+			{
+				ray.x = 0.0f;
+				ray.y = 0.0f;
+				ray.z = 1.0f;
+				return;
+			}
+
+			float theta = fminf(thetaD, 1.57079632679f);
+			for (int i = 0; i < 8; ++i)
+			{
+				const float theta2 = theta * theta;
+				const float theta4 = theta2 * theta2;
+				const float theta6 = theta4 * theta2;
+				const float theta8 = theta4 * theta4;
+				const float value = theta * (1.0f + camera[4] * theta2 + camera[5] * theta4 +
+					camera[6] * theta6 + camera[7] * theta8) - thetaD;
+				const float derivative = 1.0f + 3.0f * camera[4] * theta2 + 5.0f * camera[5] * theta4 +
+					7.0f * camera[6] * theta6 + 9.0f * camera[7] * theta8;
+				if (fabsf(derivative) < 1e-8f)
+					break;
+				theta = fminf(fmaxf(theta - value / derivative, 0.0f), 1.57079632679f);
+			}
+			const float scale = tanf(theta) / thetaD;
+			ray.x = xDistorted * scale;
+			ray.y = yDistorted * scale;
+			ray.z = 1.0f;
+			return;
+		}
+		ray.x = xDistorted;
+		ray.y = yDistorted;
+		ray.z = 1.0f;
+	}
+
 	extern __device__ float dot3(const float3& p1, const float3& p2);
 		/// <summary>
 	/// colmajor
@@ -95,14 +168,14 @@ namespace CUDA_LYJ
 	};
 
 	/// <summary>
-	/// fx, fy, cx, cy
+	/// Pinhole: fx, fy, cx, cy. Fisheye additionally stores k1, k2, k3, k4.
 	/// </summary>
 	class CUDA_LYJ_API CameraCU
 	{
 	public:
 		CameraCU()
 		{
-			cudaMalloc((void **)&paramsDev_, 4 * sizeof(float));
+			cudaMalloc((void **)&paramsDev_, 8 * sizeof(float));
 			cudaMalloc((void **)&paramsInvDev_, 4 * sizeof(float));
 		};
 		~CameraCU()
@@ -113,9 +186,18 @@ namespace CUDA_LYJ
 
 		__host__ void upload(int _w, int _h, float* _params, cudaStream_t _stream = nullptr)
 		{
+			upload(_w, _h, _params, 0u, _stream);
+		}
+
+		__host__ void upload(int _w, int _h, float* _params, unsigned int _cameraModel,
+			cudaStream_t _stream = nullptr)
+		{
 			w_ = _w;
 			h_ = _h;
-			cudaMemcpyAsync(paramsDev_, _params, 4 * sizeof(float), cudaMemcpyHostToDevice, _stream);
+			cameraModel_ = _cameraModel;
+			cudaMemsetAsync(paramsDev_, 0, 8 * sizeof(float), _stream);
+			const size_t parameterCount = _cameraModel == 1u ? 8 : 4;
+			cudaMemcpyAsync(paramsDev_, _params, parameterCount * sizeof(float), cudaMemcpyHostToDevice, _stream);
 			float camInv[4];
 			camInv[0] = 1.0f / _params[0];
 			camInv[1] = 1.0f / _params[1];
@@ -124,16 +206,27 @@ namespace CUDA_LYJ
 			cudaMemcpyAsync(paramsInvDev_, camInv, 4 * sizeof(float), cudaMemcpyHostToDevice, _stream);
 		}
 
-		__host__ void upload(int _w, int _h, float *_params, float *_paramsInv, cudaStream_t _stream = nullptr)
+		__host__ void upload(int _w, int _h, float *_params, float *_paramsInv,
+			cudaStream_t _stream = nullptr)
+		{
+			upload(_w, _h, _params, _paramsInv, 0u, _stream);
+		}
+
+		__host__ void upload(int _w, int _h, float *_params, float *_paramsInv,
+			unsigned int _cameraModel, cudaStream_t _stream = nullptr)
 		{
 			w_ = _w;
 			h_ = _h;
-			cudaMemcpyAsync(paramsDev_, _params, 4 * sizeof(float), cudaMemcpyHostToDevice, _stream);
+			cameraModel_ = _cameraModel;
+			cudaMemsetAsync(paramsDev_, 0, 8 * sizeof(float), _stream);
+			const size_t parameterCount = _cameraModel == 1u ? 8 : 4;
+			cudaMemcpyAsync(paramsDev_, _params, parameterCount * sizeof(float), cudaMemcpyHostToDevice, _stream);
 			cudaMemcpyAsync(paramsInvDev_, _paramsInv, 4 * sizeof(float), cudaMemcpyHostToDevice, _stream);
 		}
 		__host__ void download(float *_params, float *_paramsInv, cudaStream_t _stream = nullptr)
 		{
-			cudaMemcpyAsync(_params, paramsDev_, 4 * sizeof(float), cudaMemcpyDeviceToHost, _stream);
+			const size_t parameterCount = cameraModel_ == 1u ? 8 : 4;
+			cudaMemcpyAsync(_params, paramsDev_, parameterCount * sizeof(float), cudaMemcpyDeviceToHost, _stream);
 			cudaMemcpyAsync(_paramsInv, paramsInvDev_, 4 * sizeof(float), cudaMemcpyDeviceToHost, _stream);
 		}
 		//__device__ void pointToImage(const float3 &_p3d, float3 &_p2d)
@@ -174,6 +267,7 @@ namespace CUDA_LYJ
 		// private:
 		float *paramsDev_ = nullptr;
 		float *paramsInvDev_ = nullptr;
+		unsigned int cameraModel_ = 0;
 		int w_ = 0;
 		int h_ = 0;
 	};

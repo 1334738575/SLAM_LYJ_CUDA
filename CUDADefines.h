@@ -3,11 +3,18 @@
 
 
 #include "CUDACommon.cuh"
+#include <stdint.h>
 
 
 
 namespace CUDA_LYJ
 {
+	enum class CameraModel : uint32_t
+	{
+		Pinhole = 0,
+		Fisheye = 1,
+	};
+
 	union CUDA_LYJ_API DepthID2
 	{
 		struct

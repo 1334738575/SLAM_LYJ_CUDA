@@ -7,11 +7,10 @@ namespace CUDA_LYJ
 	//{
 	//	return p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
 	//}	
-	__device__ void pointToImageTmp(float* _cam, const float3 &_p3d, float& _u, float& _v)
+	__device__ void pointToImageTmp(float* _cam, unsigned int _cameraModel,
+		const float3 &_p3d, float& _u, float& _v)
 	{
-		float invZ = 1.0f / _p3d.z;
-		_u = _p3d.x * _cam[0] * invZ + _cam[2];
-		_v = _p3d.y * _cam[1] * invZ + _cam[3];
+		projectCameraPoint(_cam, _cameraModel, _p3d, _u, _v);
 	}
 	__device__ void transformTmp(float* _T, const float3& _p, float3& _ret)
 	{
@@ -137,14 +136,16 @@ namespace CUDA_LYJ
 	__device__ int getIndInGrid(float* _Tcw,
 		int _wGrid, int _hGrid, int _gridResul, short* _featureGrid, char* eveFeatureGridSz,
 		float3& _Pw,
-		float* _cam,
+		float* _cam, unsigned int _cameraModel,
 		int& _cGrid, int& _rGrid
 	)
 	{
 		float3 Pc;
 		transformTmp(_Tcw, _Pw, Pc);
 		float u, v;
-		pointToImageTmp(_cam, _Pw, u, v);
+		if (Pc.z <= 0.0f)
+			return 0;
+		pointToImageTmp(_cam, _cameraModel, Pc, u, v);
 		_cGrid = int(u) / _gridResul;
 		_rGrid = int(v) / _gridResul;
 		if (_cGrid < 0 || _rGrid < 0 || _cGrid >= _wGrid || _rGrid >= _hGrid)
@@ -314,7 +315,7 @@ namespace CUDA_LYJ
 		float2* _kps1, float2* _kps2,
 		unsigned int* _descs1, unsigned int* _descs2,
 		float3* _Pcs1, float3* _Pcs2,
-		float* _cam,
+		float* _cam, unsigned int _cameraModel, int _imageWidth, int _imageHeight,
 		int _distThDesc, float _nnTh, char _bUse3D, float _squareDistTh3D,
 		short* _match2to1)
 	{
@@ -331,18 +332,18 @@ namespace CUDA_LYJ
 		}
 
 		//
-		float2* kp1 = _kps1 + idx;
-		float F21[9];
-		getF(_Tcw2, _Twc1, _cam, F21);
-		float line[3];
-		for (int i = 0; i < 3; ++i)
-		{
-			line[i] = F21[i] * kp1[0].x + F21[3 + i] * kp1[0].y + F21[6 + i];
-		}
-
-		int gridIndSz = 0;
 		char rcGrids[CUDAORBMAXW / CUDAORBGRIDSOLU * 2 * 3];
-		getGridInd(line, _wGrid2, _hGrid2, rcGrids, gridIndSz);
+		int gridIndSz = 0;
+		if (_cameraModel == 0u)
+		{
+			float2* kp1 = _kps1 + idx;
+			float F21[9];
+			getF(_Tcw2, _Twc1, _cam, F21);
+			float line[3];
+			for (int i = 0; i < 3; ++i)
+				line[i] = F21[i] * kp1[0].x + F21[3 + i] * kp1[0].y + F21[6 + i];
+			getGridInd(line, _wGrid2, _hGrid2, rcGrids, gridIndSz);
+		}
 
 		unsigned int* desc1 = _descs1 + 8 * idx;
 		int bestId = -1;
@@ -356,10 +357,15 @@ namespace CUDA_LYJ
 		float3 Pw2;
 		short* kpIndSt;
 		int kpIndSz;
-		for (int ii = 0; ii <gridIndSz; ++ii)
+		const int activeWidth = min(_wGrid2, (_imageWidth + _gridResul - 1) / _gridResul);
+		const int activeHeight = min(_hGrid2, (_imageHeight + _gridResul - 1) / _gridResul);
+		if (_cameraModel == 1u && (activeWidth <= 0 || activeHeight <= 0))
+			return;
+		const int cellCount = _cameraModel == 1u ? activeWidth * activeHeight : gridIndSz;
+		for (int ii = 0; ii < cellCount; ++ii)
 		{
-			int i = int(rcGrids[2 * ii]);
-			int j = int(rcGrids[2 * ii + 1]);
+			int i = _cameraModel == 1u ? ii / activeWidth : int(rcGrids[2 * ii]);
+			int j = _cameraModel == 1u ? ii % activeWidth : int(rcGrids[2 * ii + 1]);
 			if (i < 0 || j < 0 || i >= _hGrid2 || j >= _wGrid2)
 				continue;
 			getKpIndInCell(_wGrid2, _hGrid2, _featureGrid2, eveFeatureGrid2Sz, j, i, kpIndSt, kpIndSz);
@@ -422,7 +428,7 @@ namespace CUDA_LYJ
 			_kps1, _kps2,
 			_descs1, _descs2,
 			_Pcs1, _Pcs2,
-			_cam.paramsDev_,
+			_cam.paramsDev_, _cam.cameraModel_, _cam.w_, _cam.h_,
 			_distThDesc, _nnTh, _bUse3D, _squareDistTh3D,
 			_match2to1
 			);
@@ -438,7 +444,7 @@ namespace CUDA_LYJ
 		float3* _Pcs1, float3* _Pcs2,
 		float3* _Pws1,
 		char* _bPws1,
-		float* _cam,
+		float* _cam, unsigned int _cameraModel,
 		int _distThDesc, float _nnTh, char _bUse3D, float _squareDistTh3D,
 		short* _match2to1)
 	{
@@ -459,7 +465,8 @@ namespace CUDA_LYJ
 		float3* Pw = _Pws1 + idx;
 		int cGrid;
 		int rGrid;
-		if (getIndInGrid(_Tcw2, _wGrid2, _hGrid2, _gridResul, _featureGrid2, eveFeatureGrid2Sz, Pw[0], _cam, cGrid, rGrid) == 0)
+		if (getIndInGrid(_Tcw2, _wGrid2, _hGrid2, _gridResul, _featureGrid2, eveFeatureGrid2Sz,
+			Pw[0], _cam, _cameraModel, cGrid, rGrid) == 0)
 			return;
 
 		unsigned int* desc1 = _descs1 + 8 * idx;
@@ -541,7 +548,7 @@ namespace CUDA_LYJ
 			_descs1, _descs2,
 			_Pcs1, _Pcs2,
 			_Pws1, _bPws1,
-			_cam.paramsDev_,
+			_cam.paramsDev_, _cam.cameraModel_,
 			_distThDesc, _nnTh, _bUse3D, _squareDistTh3D,
 			_match2to1
 			);
@@ -550,14 +557,16 @@ namespace CUDA_LYJ
 	__device__ int getIndInGridCom(float* _Tcw,
 		GridCU& _gridCom,
 		float3& _Pw,
-		float* _cam,
+		float* _cam, unsigned int _cameraModel,
 		int& _cGrid, int& _rGrid
 	)
 	{
 		float3 Pc;
 		transformTmp(_Tcw, _Pw, Pc);
 		float u, v;
-		pointToImageTmp(_cam, _Pw, u, v);
+		if (Pc.z <= 0.0f)
+			return 0;
+		pointToImageTmp(_cam, _cameraModel, Pc, u, v);
 		return _gridCom.getIndGrid(u, v, _cGrid, _rGrid);
 	}
 	__global__ void matchProCUCom(int _kp1Sz, int _kp2Sz,
@@ -568,7 +577,7 @@ namespace CUDA_LYJ
 		float3* _Pcs1, float3* _Pcs2,
 		float3* _Pws1,
 		char* _bPws1,
-		float* _cam,
+		float* _cam, unsigned int _cameraModel,
 		int _distThDesc, float _nnTh, char _bUse3D, float _squareDistTh3D,
 		short* _match2to1)
 	{
@@ -589,7 +598,7 @@ namespace CUDA_LYJ
 		float3* Pw = _Pws1 + idx;
 		int cGrid;
 		int rGrid;
-		if (getIndInGridCom(_Tcw2, _gridCom, Pw[0], _cam, cGrid, rGrid) == 0)
+		if (getIndInGridCom(_Tcw2, _gridCom, Pw[0], _cam, _cameraModel, cGrid, rGrid) == 0)
 			return;
 
 		unsigned int* desc1 = _descs1 + 8 * idx;
@@ -671,7 +680,7 @@ namespace CUDA_LYJ
 			_descs1, _descs2,
 			_Pcs1, _Pcs2,
 			_Pws1, _bPws1,
-			_cam.paramsDev_,
+			_cam.paramsDev_, _cam.cameraModel_,
 			_distThDesc, _nnTh, _bUse3D, _squareDistTh3D,
 			_match2to1
 			);

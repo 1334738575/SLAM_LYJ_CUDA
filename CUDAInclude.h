@@ -24,7 +24,7 @@ namespace CUDA_LYJ
 	CUDA_LYJ_API ProHandle initProjector(
 		const float* Pws, const unsigned int PSize,
 		const float* centers, const float* fNormals, const unsigned int* faces, const unsigned int fSize,
-		float* camParams, const int w, const int h);
+		float* camParams, const int w, const int h, CameraModel cameraModel = CameraModel::Pinhole);
 	//CUDA_LYJ_API void project(ProHandle handle,
 	//	float* Tcw,
 	//	float* depths, unsigned int* fIds, char* allVisiblePIds, char* allVisibleFIds,
@@ -39,7 +39,7 @@ namespace CUDA_LYJ
 
 	typedef void* MatchHanlde;
 	CUDA_LYJ_API MatchHanlde initMatcher(
-		int _w = 0, int _h = 0, float* _cam = nullptr
+		int _w = 0, int _h = 0, float* _cam = nullptr, CameraModel cameraModel = CameraModel::Pinhole
 	);
 	CUDA_LYJ_API void matchBF(MatchHanlde handle, ORBMatcherCache& cache,
 		short* matched2to1, short* matched1to2,

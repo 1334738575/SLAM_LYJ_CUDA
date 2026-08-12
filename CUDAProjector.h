@@ -16,7 +16,7 @@ namespace CUDA_LYJ
 
 		void create(const float *Pws, const unsigned int PSize,
 					const float *centers, const float *fNormals, const unsigned int *faces, const unsigned int fSize,
-					float *camParams, const int w, const int h)
+					float *camParams, const int w, const int h, CameraModel cameraModel = CameraModel::Pinhole)
 		{
 			PSize_ = PSize;
 			fSize_ = fSize;
@@ -45,7 +45,7 @@ namespace CUDA_LYJ
 			cudaMemcpy(facesDev_, faces, fSize * 3 * sizeof(unsigned int), cudaMemcpyHostToDevice);
 			cudaMalloc((void **)&fNormalwsDev_, fSize * 3 * sizeof(float));
 			cudaMemcpy(fNormalwsDev_, fNormals, fSize * 3 * sizeof(float), cudaMemcpyHostToDevice);
-			camDev_.upload(w, h, camParams, camInv.data());
+			camDev_.upload(w, h, camParams, camInv.data(), static_cast<unsigned int>(cameraModel));
 		}
 
 		void project(ProjectorCache &cache,

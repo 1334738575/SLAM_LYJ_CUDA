@@ -102,10 +102,10 @@ namespace CUDA_LYJ
     CUDA_LYJ_API ProHandle initProjector(
         const float *Pws, const unsigned int PSize,
         const float *centers, const float *fNormals, const unsigned int *faces, const unsigned int fSize,
-        float *camParams, const int w, const int h)
+        float *camParams, const int w, const int h, CameraModel cameraModel)
     {
         ProjectorCU *pro = new ProjectorCU();
-        pro->create(Pws, PSize, centers, fNormals, faces, fSize, camParams, w, h);
+        pro->create(Pws, PSize, centers, fNormals, faces, fSize, camParams, w, h, cameraModel);
         return (void *)pro;
     }
     //CUDA_LYJ_API void project(ProHandle handle,
@@ -134,13 +134,13 @@ namespace CUDA_LYJ
     }
 
 
-    CUDA_LYJ_API MatchHanlde initMatcher(int _w, int _h, float* _cam)
+    CUDA_LYJ_API MatchHanlde initMatcher(int _w, int _h, float* _cam, CameraModel cameraModel)
     {
         ORBMatcherCU* matcher = nullptr;
         if (_cam == nullptr)
             matcher = new ORBMatcherCU();
         else
-            matcher = new ORBMatcherCU(_w, _h, _cam);
+            matcher = new ORBMatcherCU(_w, _h, _cam, cameraModel);
         return (void*)matcher;
     }
     static void getMatchResult(ORBMatcherCache& cache, short* matched2to1, short* matched1to2)

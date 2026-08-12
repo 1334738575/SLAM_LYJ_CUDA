@@ -13,17 +13,17 @@ namespace CUDA_LYJ
 	{
 	public:
 		ORBMatcherCU() = default;
-		ORBMatcherCU(int _w, int _h, float* _cam) 
+		ORBMatcherCU(int _w, int _h, float* _cam, CameraModel cameraModel = CameraModel::Pinhole)
 		{
-			init(_w, _h, _cam);
+			init(_w, _h, _cam, cameraModel);
 		};
 		~ORBMatcherCU() {};
 
-		void init(int _w, int _h, float* _cam) 
+		void init(int _w, int _h, float* _cam, CameraModel cameraModel = CameraModel::Pinhole)
 		{
 			w_ = _w;
 			h_ = _h;
-			camDev_.upload(_w, _h, _cam);
+			camDev_.upload(_w, _h, _cam, static_cast<unsigned int>(cameraModel));
 		};
 
 		void matchBF(ORBMatcherCache& _cache, int _distThDesc, float _nnTh, char _bCheckOri, char _bUse3D, float _squareDistTh3D)
